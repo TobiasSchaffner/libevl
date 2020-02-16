@@ -64,6 +64,7 @@ test_programs = [
     'proxy-eventfd',
     'proxy-pipe',
     'proxy-poll',
+    'ptrace-sync',
     'rwlock-read',
     'rwlock-write',
     'sched-quota-accuracy',
