@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 	for (n = 0; n < MAX_CELLS; n++) {
 		ptr = results[n];
 		m = (n / (MAX_CELLS / MAX_FEEDERS)) << 24;
-		__Texpr_assert((long)ptr == (m | (n % (MAX_CELLS / MAX_FEEDERS))));
+		__Texpr_assert((unsigned long)ptr == (m | (n % (MAX_CELLS / MAX_FEEDERS))));
 	}
 
 	return 0;
