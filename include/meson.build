@@ -37,7 +37,6 @@ libevl_headers = [
     'evl/syscall.h',
     'evl/thread.h',
     'evl/timer.h',
-    'evl/tube.h',
     'evl/xbuf.h',
 ]
 
