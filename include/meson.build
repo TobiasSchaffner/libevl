@@ -69,13 +69,8 @@ install_headers(
     subdir : 'eshi'
 )
 
-res = run_command(libevl_scripts / 'collect-uapi.sh',
-    check : true,
-    env : uapi_env
+uapi_install = find_program('copy-uapi.sh',
+    dirs : libevl_scripts,
+    required : true
 )
-uapi_headers = res.stdout().strip().split()
-
-install_headers(
-    uapi_headers,
-    subdir : 'uapi/evl',
-)
+meson.add_install_script(uapi_install, o_uapi, get_option('prefix') / get_option('includedir'))
