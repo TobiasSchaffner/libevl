@@ -59,18 +59,19 @@ post_install = find_program('post-install.sh',
     required : true
 )
 
-# DSO version stamps.
+# DSO version should NOT follow the semantic versioning scheme
+# otherwise used for the package. It should be of the form
+# <current>.<revision>.<age>, following libtool scheme:
 #
-# CAUTION: A DSO version should NOT follow the semantic versioning
-# scheme otherwise used for the package. It should be of the form
-# <current>.<revision>.<age>:
+# increment <current>, set <revision> to 0, if any interfaces have been added, removed, or changed.
+# increment <revision> if the code changed since the last release.
+# increment <age> if any interfaces have been added only.
+# set <age> to 0 if any interfaces have been removed or changed.
 #
-# <current> increases whenever an interface has been added, removed or changed.
-# <revision> always increases on new releases.
-# <age> increases only if the changes made to the ABI are backward compatible.
+# <age> must be less than or equal to <current>
 
 libevl_dso_version = '1.1.0'
-libeshi_dso_version = '0.1.1'
+libeshi_dso_version = '0.2.0'
 
 meson.add_install_script(post_install)
 
