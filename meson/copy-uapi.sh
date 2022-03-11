@@ -2,4 +2,5 @@
 # $1 = O_UAPI
 # $2 = $prefix/includedir
 
-find -L $1/evl \! \( -name '*~' \) -type f | cpio -pduvm $DESTDIR/$2
+cd $1
+find -L evl \! \( -name '*~' \) -type f | cpio -pduvm $DESTDIR/$2/uapi
