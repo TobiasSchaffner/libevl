@@ -43,11 +43,11 @@ static void usage(void)
 {
 	fprintf(stderr, "usage: evl [options] [<command> [<args>]]\n");
         fprintf(stderr, "-P --prefix=<path>   set command path prefix\n");
-        fprintf(stderr, "-V --version         print library and required ABI versions\n");
+        fprintf(stderr, "-v -V --version      print library and required ABI versions\n");
         fprintf(stderr, "-h --help            this help\n");
 }
 
-#define short_optlist "+P:Vh"
+#define short_optlist "+P:Vvh"
 
 static const struct option options[] = {
 	{
@@ -59,6 +59,11 @@ static const struct option options[] = {
 		.name = "version",
 		.has_arg = no_argument,
 		.val = 'V'
+	},
+	{
+		.name = "version",
+		.has_arg = no_argument,
+		.val = 'v'
 	},
 	{
 		.name = "help",
@@ -83,6 +88,7 @@ int main(int argc, char *const argv[])
 		case 'P':
 			cmddir = optarg;
 			break;
+		case 'v':
 		case 'V':
 			printf("%s [requires ABI %d]\n",
 				evl_get_version().version_string,
