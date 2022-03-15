@@ -79,7 +79,7 @@ struct cpu_tasks {
 	unsigned long last_switches_count;
 };
 
-static sem_t sleeper_start;
+static sem_t task_init, sleeper_start;
 static int quiet, status;
 static struct timespec start;
 static pthread_mutex_t headers_lock;
@@ -277,6 +277,8 @@ static void *sleeper_switcher(void *cookie)
 	ts.tv_sec = 0;
 	ts.tv_nsec = 1000000;
 
+	sem_post(&task_init);
+
 	ret = sem_wait(&sleeper_start);
 	if (ret) {
 		fprintf(stderr, "sem_wait FAILED (%d)\n", errno);
@@ -378,6 +380,8 @@ static void *fpu_stress(void *cookie)
 		clean_exit(EXIT_FAILURE);
 	}
 
+	sem_post(&task_init);
+
 	for (i = 0; i < sizeof(a)/sizeof(a[0]); i++)
 		a[i] = b[i] = 3.14;
 
@@ -425,6 +429,8 @@ static void *rtup(void *cookie)
 		perror("rtup: sched_setaffinity");
 		clean_exit(EXIT_FAILURE);
 	}
+
+	sem_post(&task_init);
 
 	rtsw.from = param->swt.index;
 	to = param->swt.index;
@@ -503,6 +509,8 @@ static void *rtus(void *cookie)
 		perror("rtus: sched_setaffinity");
 		clean_exit(EXIT_FAILURE);
 	}
+
+	sem_post(&task_init);
 
 	rtsw.from = param->swt.index;
 	to = param->swt.index;
@@ -598,6 +606,8 @@ static void *rtuo(void *cookie)
 		perror("rtuo: sched_setaffinity");
 		clean_exit(EXIT_FAILURE);
 	}
+
+	sem_post(&task_init);
 
 	rtsw.from = param->swt.index;
 	to = param->swt.index;
@@ -842,6 +852,8 @@ static int task_create(struct cpu_tasks *cpu,
 		pthread_attr_destroy(&attr);
 		if (err)
 			fprintf(stderr,"pthread_create: %s\n",strerror(err));
+		else
+			sem_wait(&task_init);
 
 		return err;
 	}
@@ -856,7 +868,8 @@ static int task_create(struct cpu_tasks *cpu,
 		pthread_attr_destroy(&attr);
 		if (err)
 			fprintf(stderr,"pthread_create: %s\n",strerror(err));
-
+		else
+			sem_wait(&task_init);
 
 		return err;
 	}
@@ -867,6 +880,8 @@ static int task_create(struct cpu_tasks *cpu,
 		fprintf(stderr, "pthread_create: %s\n", strerror(err));
 		return err;
 	}
+
+	sem_wait(&task_init);
 
 	return 0;
 }
@@ -1151,6 +1166,11 @@ int main(int argc, const char *argv[])
 
 	status = EXIT_SUCCESS;
 	main_tid = pthread_self();
+
+	if (sem_init(&task_init, 0, 0)) {
+		perror("sem_init");
+		exit(EXIT_FAILURE);
+	}
 
 	if (sem_init(&sleeper_start, 0, 0)) {
 		perror("sem_init");
