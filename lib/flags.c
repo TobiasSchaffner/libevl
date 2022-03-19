@@ -58,8 +58,7 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 		return efd;
 
 	flg->u.active.state = evl_shared_memory + eids.state_offset;
-	/* Force sync the PTE. */
-	atomic_set(&flg->u.active.state->u.event.value, initval);
+	atomic_store(&flg->u.active.state->u.event.value, initval);
 	flg->u.active.fundle = eids.fundle;
 	flg->u.active.efd = efd;
 	flg->magic = __FLAGS_ACTIVE_MAGIC;
@@ -143,25 +142,22 @@ static int check_sanity(struct evl_flags *flg)
 
 static int try_wait(struct evl_monitor_state *state)
 {
-	int val, prev;
+	__s32 val;
 
-	val = atomic_read(&state->u.event.value);
-	if (!val)
-		return 0;
-
+	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	do {
-		prev = val;
-		val = atomic_cmpxchg(&state->u.event.value, prev, 0);
 		if (!val)
 			return 0;
-	} while (val != prev);
+	} while (!atomic_compare_exchange_weak_explicit(
+			&state->u.event.value, &val, 0,
+			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE));
 
 	return val;
 }
 
 static inline bool is_polled(struct evl_monitor_state *state)
 {
-	return !!atomic_read(&state->u.event.pollrefs);
+	return !!atomic_load(&state->u.event.pollrefs);
 }
 
 int evl_timedwait_flags(struct evl_flags *flg,
@@ -234,8 +230,8 @@ int evl_trywait_flags(struct evl_flags *flg, int *r_bits)
 int evl_post_flags(struct evl_flags *flg, int bits)
 {
 	struct evl_monitor_state *state;
-	int val, prev, next, ret;
-	__s32 mask = bits;
+	__s32 val, mask = bits;
+	int ret;
 
 	ret = check_sanity(flg);
 	if (ret)
@@ -254,7 +250,7 @@ int evl_post_flags(struct evl_flags *flg, int bits)
 	 * in most cases anyway.
 	 */
 	state = flg->u.active.state;
-	val = atomic_read(&state->u.event.value);
+	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	if (!val || is_polled(state)) {
 	slow_path:
 		if (evl_get_current())
@@ -266,19 +262,26 @@ int evl_post_flags(struct evl_flags *flg, int bits)
 		return ret ? -errno : 0;
 	}
 
-	do {
-		prev = val;
-		next = prev | bits;
-		val = atomic_cmpxchg(&state->u.event.value, prev, next);
+	while (!atomic_compare_exchange_weak_explicit(
+			&state->u.event.value, &val, val | bits,
+			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE)) {
 		if (!val)
 			goto slow_path;
-		if (is_polled(state)) {
-			/* If swap happened, just trigger a wakeup. */
-			if (val == prev)
-				mask = 0;
-			goto slow_path;
-		}
-	} while (val != prev);
+	}
+
+	/*
+	 * We successfully updated the event value. If that event is
+	 * currently polled, do a kernel entry to force a check for
+	 * pending wakeups. Conversely, waiters on the kernel side
+	 * first raised the polled state before checking for polled
+	 * events then blocking if need be.  We might have spurious
+	 * calls below, but these would be rare, fast and innocuous
+	 * since they would not change the event value.
+	 */
+	if (is_polled(state)) {
+		mask = 0;
+		goto slow_path;
+	}
 
 	return 0;
 }
@@ -288,7 +291,7 @@ int evl_peek_flags(struct evl_flags *flg, int *r_bits)
 	if (flg->magic != __FLAGS_ACTIVE_MAGIC)
 		return -EINVAL;
 
-	*r_bits = atomic_read(&flg->u.active.state->u.event.value);
+	*r_bits = atomic_load(&flg->u.active.state->u.event.value);
 
 	return 0;
 }

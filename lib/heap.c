@@ -1251,7 +1251,7 @@ int evl_init_heap(struct evl_heap *heap, void *mem, size_t size)
 	list_init(&heap->extents);
 
 	ret = evl_new_mutex(&heap->lock, "heap:%.3d",
-			atomic_add_return(&heap_serial, 1));
+			atomic_fetch_add(&heap_serial, 1));
 	if (ret < 0)
 		return ret;
 

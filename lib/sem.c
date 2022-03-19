@@ -57,8 +57,7 @@ int evl_create_sem(struct evl_sem *sem, int clockfd,
 		return efd;
 
 	sem->u.active.state = evl_shared_memory + eids.state_offset;
-	/* Force sync the PTE. */
-	atomic_set(&sem->u.active.state->u.event.value, initval);
+	atomic_store(&sem->u.active.state->u.event.value, initval);
 	sem->u.active.fundle = eids.fundle;
 	sem->u.active.efd = efd;
 	sem->magic = __SEM_ACTIVE_MAGIC;
@@ -143,33 +142,17 @@ static int check_sanity(struct evl_sem *sem)
 	return sem->magic != __SEM_ACTIVE_MAGIC ? -EINVAL : 0;
 }
 
-/*
- * CAUTION: we assume that the implementation of atomic_cmpxchg()
- * which currently relies on GCC's __sync_val_compare_and_swap()
- * built-in does issue proper full memory barrier on successful swap,
- * so we should not have to emit them manually.
- */
 static int try_get(struct evl_monitor_state *state)
 {
-	int val, prev, next;
+	__s32 val;
 
-	val = atomic_read(&state->u.event.value);
-	if (val <= 0)
-		return -EAGAIN;
-
+	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	do {
-		prev = val;
-		next = prev - 1;
-		val = atomic_cmpxchg(&state->u.event.value, prev, next);
-		/*
-		 * If the semaphore's value was strictly positive and
-		 * we end up with a negative one after a swap attempt,
-		 * then cmpxchg must have failed, and the non-blocking
-		 * P operation failed.
-		 */
 		if (val <= 0)
 			return -EAGAIN;
-	} while (val != prev);
+	} while (!atomic_compare_exchange_weak_explicit(
+			&state->u.event.value, &val, val - 1,
+			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE));
 
 	return 0;
 }
@@ -225,21 +208,21 @@ int evl_tryget_sem(struct evl_sem *sem)
 
 static inline bool is_polled(struct evl_monitor_state *state)
 {
-	return !!atomic_read(&state->u.event.pollrefs);
+	return !!atomic_load(&state->u.event.pollrefs);
 }
 
 int evl_put_sem(struct evl_sem *sem)
 {
 	struct evl_monitor_state *state;
-	int val, prev, next, ret;
-	__s32 sigval = 1;
+	__s32 sigval = 1, val;
+	int ret;
 
 	ret = check_sanity(sem);
 	if (ret)
 		return ret;
 
 	state = sem->u.active.state;
-	val = atomic_read(&state->u.event.value);
+	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	if (val < 0 || is_polled(state)) {
 	slow_path:
 		if (evl_get_current())
@@ -252,24 +235,17 @@ int evl_put_sem(struct evl_sem *sem)
 		return ret ? -errno : 0;
 	}
 
-	do {
-		prev = val;
-		next = prev + 1;
-		val = atomic_cmpxchg(&state->u.event.value, prev, next);
-		/*
-		 * If somebody sneaked in the wait queue or started
-		 * polling us in the meantime, we have to perform a
-		 * kernel entry.
-		 */
+	while (!atomic_compare_exchange_weak_explicit(
+			&state->u.event.value, &val, val + 1,
+			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE)) {
 		if (val < 0)
 			goto slow_path;
-		if (is_polled(state)) {
-			/* If swap happened, just trigger a wakeup. */
-			if (val == prev)
-				sigval = 0;
-			goto slow_path;
-		}
-	} while (val != prev);
+	}
+
+	if (is_polled(state)) {
+		sigval = 0;
+		goto slow_path;
+	}
 
 	return 0;
 }
@@ -279,7 +255,7 @@ int evl_peek_sem(struct evl_sem *sem, int *r_val)
 	if (sem->magic != __SEM_ACTIVE_MAGIC)
 		return -EINVAL;
 
-	*r_val = atomic_read(&sem->u.active.state->u.event.value);
+	*r_val = atomic_load(&sem->u.active.state->u.event.value);
 
 	return 0;
 }

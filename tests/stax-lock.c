@@ -48,7 +48,7 @@ static int timeout_secs = 3;	/* Default runtime. */
 
 static void *test_thread(void *arg)
 {
-	int tfd, ret, me, invalid, prev, old, new;
+	int tfd, ret, me, invalid, prev, next;
 	long serial = (long)arg;
 	typeof(usleep) *do_usleep;
 	typeof(ioctl) *do_ioctl;
@@ -87,29 +87,29 @@ static void *test_thread(void *arg)
 	 * contenders indefinitely.
 	 */
 	while (!done) {
-		if (atomic_read(&presence_mask) & invalid)
-			atomic_add_return(&counter_proof, 1);
+		if (atomic_load(&presence_mask) & invalid)
+			atomic_fetch_add(&counter_proof, 1);
 
 		ret = do_ioctl(drvfd, EVL_HECIOC_LOCK_STAX);
 		__Texpr_assert(ret == 0);
 
-		prev = atomic_read(&presence_mask);
+		prev = atomic_load_explicit(&presence_mask, __ATOMIC_ACQUIRE);
 		do {
-			old = prev;
-			new = old | me;
-			prev = atomic_cmpxchg(&presence_mask, old, new);
-		} while (prev != old);
+			next = prev | me;
+		} while (!atomic_compare_exchange_weak_explicit(
+				&presence_mask, &prev, next,
+			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE));
 
 		__Fexpr_assert(prev & invalid);
 
 		do_usleep(delay);
 
-		prev = atomic_read(&presence_mask);
+		prev = atomic_load_explicit(&presence_mask, __ATOMIC_ACQUIRE);
 		do {
-			old = prev;
-			new = old & ~me;
-			prev = atomic_cmpxchg(&presence_mask, old, new);
-		} while (prev != old);
+			next = prev & ~me;
+		} while (!atomic_compare_exchange_weak_explicit(
+				&presence_mask, &prev, next,
+			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE));
 
 		__Fexpr_assert(prev & invalid);
 
@@ -120,8 +120,8 @@ static void *test_thread(void *arg)
 		 * We should observe conflicting accesses from time to
 		 * time when the stax does not guard the section.
 		 */
-		if (atomic_read(&presence_mask) & invalid)
-			atomic_add_return(&counter_proof, 1);
+		if (atomic_load(&presence_mask) & invalid)
+			atomic_fetch_add(&counter_proof, 1);
 
 		do_usleep(delay);
 	}
@@ -251,9 +251,9 @@ int main(int argc, char *argv[])
 	 * of the stax protected section, otherwise we might not have
 	 * tested what we thought we did...
 	 */
-	__Texpr_assert(atomic_read(&counter_proof) > 0);
+	__Texpr_assert(atomic_load(&counter_proof) > 0);
 	if (verbose)
-		printf("%d legit conflicts detected\n", atomic_read(&counter_proof));
+		printf("%d legit conflicts detected\n", atomic_load(&counter_proof));
 
 	return 0;
 }

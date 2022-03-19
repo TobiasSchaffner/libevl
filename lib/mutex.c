@@ -73,9 +73,8 @@ static int init_mutex_vargs(struct evl_mutex *mutex,
 	gst = evl_shared_memory + eids.state_offset;
 	gst->u.gate.recursive = !!(flags & EVL_MUTEX_RECURSIVE);
 	mutex->u.active.state = gst;
-	/* Force sync the PTE. */
-	atomic_set(&gst->u.gate.owner, EVL_NO_HANDLE);
-	__force_read_access(gst->flags);
+	atomic_store(&gst->u.gate.owner, EVL_NO_HANDLE);
+	__force_read_access(gst->flags); /* Force sync the PTE. */
 	mutex->u.active.fundle = eids.fundle;
 	mutex->u.active.monitor = EVL_MONITOR_GATE;
 	mutex->u.active.protocol = protocol;
