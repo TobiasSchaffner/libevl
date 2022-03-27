@@ -3,4 +3,4 @@
 # $2 = $prefix/includedir
 
 cd $1
-find -L evl \! \( -name '*~' \) -type f | cpio -pduvm $DESTDIR/$2/uapi
+find -L evl \! \( -name '*~' \) -type f | cpio -pduvm $DESTDIR/$2/evl/uapi
