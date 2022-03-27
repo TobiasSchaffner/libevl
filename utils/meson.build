@@ -10,13 +10,13 @@ executable('evl-ps',
     'evl-ps.c',
     include_directories : libevl_incdirs,
     install: true,
-    install_dir : get_option('libexecdir'),
+    install_dir : libexec_evl,
 )
 
 executable('evl-check',
     'evl-check.c',
     install: true,
-    install_dir : get_option('libexecdir'),
+    install_dir : libexec_evl,
 )
 
 helper_scripts = [
@@ -33,6 +33,6 @@ helper_scripts = [
 ]
 
 install_data(helper_scripts,
-	install_dir : get_option('libexecdir'),
+	install_dir : libexec_evl,
 	install_mode : 'r-xr-x---'
 )

@@ -73,6 +73,8 @@ post_install = find_program('post-install.sh',
 libevl_dso_version = '1.1.0'
 libeshi_dso_version = '0.2.0'
 
+libexec_evl = get_option('libexecdir') / 'evl'
+
 meson.add_install_script(post_install)
 
 subdir('include')

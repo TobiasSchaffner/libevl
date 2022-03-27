@@ -118,7 +118,7 @@ int main(int argc, char *const argv[])
 		error(1, ENOMEM, "%s", arg0);
 
 	if (cmddir == NULL)
-		cmddir = find_install_dir(arg0, "libexec");
+		cmddir = find_install_dir(arg0, "libexec/evl");
 
 	ret = asprintf(&searchpath, "%s:%s", getenv("PATH"), cmddir);
 	if (ret < 0)
