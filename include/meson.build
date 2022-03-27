@@ -66,7 +66,7 @@ libeshi_headers = [
 
 install_headers(
     libeshi_headers,
-    subdir : 'eshi'
+    subdir : 'evl/eshi/evl'
 )
 
 uapi_install = find_program('copy-uapi.sh',
