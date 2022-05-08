@@ -70,7 +70,7 @@ static struct evl_notice next_states[] = {
 
 static void usage(void)
 {
-        fprintf(stderr, "usage: observable-master [options]:\n");
+        fprintf(stderr, "usage: observable-unicast [options]:\n");
         fprintf(stderr, "-l --message-loops           number of message loops\n");
         fprintf(stderr, "-v --verbose                 turn on verbosity\n");
 }
@@ -107,7 +107,7 @@ static void *worker_thread(void *arg)
 	evl_put_sem(&ready);
 
 	/*
-	 * Expect round-robin scheduling of workers if master mode.
+	 * Expect round-robin scheduling of workers if unicast mode.
 	 */
 	for (;;) {
 		ret = evl_read_observable(observable_fd, &nf, 1);
@@ -162,10 +162,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	__Tcall_assert(tfd, evl_attach_self("observable-master:%d", getpid()));
-	__Tcall_assert(ret, evl_new_sem(&ready, "observable-master-ready:%d", getpid()));
+	__Tcall_assert(tfd, evl_attach_self("observable-unicast:%d", getpid()));
+	__Tcall_assert(ret, evl_new_sem(&ready, "observable-unicast-ready:%d", getpid()));
 
-	__Tcall_assert(ofd, evl_create_observable(EVL_CLONE_MASTER,
+	__Tcall_assert(ofd, evl_create_observable(EVL_CLONE_UNICAST,
 					"observable:%d", getpid()));
 	observable_fd = ofd;
 

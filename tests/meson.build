@@ -37,7 +37,7 @@ test_programs = [
     'monitor-wait-multiple',
     'observable-hm',
     'observable-inband',
-    'observable-master',
+    'observable-unicast',
     'observable-onchange',
     'observable-oob',
     'observable-race',
