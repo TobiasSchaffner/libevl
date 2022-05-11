@@ -57,6 +57,4 @@ libevl_dep = declare_dependency(link_with : libevl,
 pkg = import('pkgconfig')
 pkg.generate(libevl,
     description : 'API library and utilities for EVL',
-    # We need this extra flag to reach the uapi/
-    extra_cflags : [ '-I${includedir}/evl' ],
 )
