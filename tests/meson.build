@@ -81,6 +81,7 @@ test_programs_with_m = [
 m_dep = cc.find_library('m', required : true)
 foreach t : test_programs_with_m
     x = executable(t, t + '.c',
+    c_args : '-Wno-array-bounds',
     install : true,
     install_dir : 'tests',
     dependencies : [ libtest_dep, libevl_dep, m_dep ]
