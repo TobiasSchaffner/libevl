@@ -15,7 +15,6 @@ arch_incdir = '../lib/arch' / libevl_arch / 'include'
 libevl_incdirs = include_directories(
     '.',
     arch_incdir,
-    meson.current_build_dir()
 )
 
 libevl_headers = [
