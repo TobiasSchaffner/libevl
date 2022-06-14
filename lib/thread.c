@@ -112,7 +112,7 @@ int evl_attach_thread(int flags, const char *fmt, ...)
 		break;
 	default:
 		policy = SCHED_FIFO;
-		fallthrough;
+		__fallthrough;
 	case SCHED_FIFO:
 	case SCHED_RR:
 		priority = param.sched_priority;

@@ -61,7 +61,7 @@
 #endif
 
 #ifndef __fallthrough
-#define fallthrough	__attribute__((__fallthrough__))
+#define __fallthrough	__attribute__((__fallthrough__))
 #endif
 
 #ifndef __alloc_size

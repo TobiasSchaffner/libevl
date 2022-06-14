@@ -1252,10 +1252,10 @@ int main(int argc, char *const argv[])
 			switch (*endptr) {
 			case 'd':
 				timeout *= 24;
-				fallthrough;
+				__fallthrough;
 			case 'h':
 				timeout *= 60;
-				fallthrough;
+				__fallthrough;
 			case 'm':
 				timeout *= 60;
 				break;
@@ -1294,7 +1294,7 @@ int main(int argc, char *const argv[])
 			break;
 		case 'C':
 			force_cpu = true;
-			/* fallthrough */
+			__fallthrough;
 		case 'c':
 			responder_cpu = atoi(optarg);
 			if (responder_cpu < 0 || responder_cpu >= CPU_SETSIZE)
