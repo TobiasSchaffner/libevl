@@ -1,5 +1,8 @@
 #! /bin/sh
 
+# Expand anything in the UAPI path meson did not (e.g. ~).
+UAPI=$(eval echo $UAPI)
+
 if test -r $UAPI/Kbuild; then
 	set \
 		$UAPI/arch/$ARCH/include/uapi/asm \
