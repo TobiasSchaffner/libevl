@@ -31,7 +31,7 @@ typedef _Atomic(__s32) atomic_t;
 		typeof(__newval) __des = (__newval);			\
 		atomic_compare_exchange_strong_explicit(		\
 			__ptr, &__exp, __des,				\
-			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE);		\
+			__ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);		\
 		__exp;							\
 	})
 
