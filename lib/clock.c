@@ -12,11 +12,12 @@
 #include <sys/timex.h>
 #include <evl/clock.h>
 #include <evl/thread.h>
+#include <evl/sys.h>
 #include <uapi/evl/clock.h>
 #include "internal.h"
 
-int evl_mono_clockfd = -ENXIO,
-	evl_real_clockfd = -ENXIO;
+int __evl_mono_clockfd = -ENXIO,
+	__evl_real_clockfd = -ENXIO;
 
 static int gettime_fallback(clockid_t clk_id, struct timespec *tp)
 {
@@ -80,9 +81,9 @@ int evl_sleep_until(int clockfd, const struct timespec *timeout)
 	struct __evl_timespec kts;
 
 	if (clockfd == EVL_CLOCK_MONOTONIC)
-		clockfd = evl_mono_clockfd;
+		clockfd = __evl_mono_clockfd;
 	else if (clockfd == EVL_CLOCK_REALTIME)
-		clockfd = evl_real_clockfd;
+		clockfd = __evl_real_clockfd;
 
 	return oob_ioctl(clockfd, EVL_CLKIOC_SLEEP,
 			__evl_ktimespec(timeout, kts)) ? -errno : 0;
@@ -114,23 +115,23 @@ int evl_usleep(useconds_t usecs)
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &now);
 	timespec_add_ns(&next, &now, usecs * 1000);
 
-	return evl_sleep_until(evl_mono_clockfd, &next);
+	return evl_sleep_until(__evl_mono_clockfd, &next);
 }
 
-int attach_evl_clocks(void)
+int __evl_attach_clocks(void)
 {
 	struct timespec dummy;
 
-	evl_mono_clockfd = open_evl_element(EVL_CLOCK_DEV,
+	__evl_mono_clockfd = evl_open_element(EVL_CLOCK_DEV,
 					    EVL_CLOCK_MONOTONIC_DEV);
-	if (evl_mono_clockfd < 0)
-		return evl_mono_clockfd;
+	if (__evl_mono_clockfd < 0)
+		return __evl_mono_clockfd;
 
-	evl_real_clockfd = open_evl_element(EVL_CLOCK_DEV,
+	__evl_real_clockfd = evl_open_element(EVL_CLOCK_DEV,
 					    EVL_CLOCK_REALTIME_DEV);
-	if (evl_real_clockfd < 0) {
-		close(evl_mono_clockfd);
-		return evl_real_clockfd;
+	if (__evl_real_clockfd < 0) {
+		close(__evl_mono_clockfd);
+		return __evl_real_clockfd;
 	}
 
 	/*

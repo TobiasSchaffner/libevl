@@ -18,6 +18,7 @@
 #include <error.h>
 #include <errno.h>
 #include <evl/evl.h>
+#include <evl/sys.h>
 #include <uapi/asm/evl/fptest.h>
 #include "helpers.h"
 

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <evl/sys.h>
 #include <evl/proxy.h>
 #include <evl/thread.h>
 #include <evl/syscall.h>
@@ -20,7 +21,7 @@ char fmt_buf[1024];
 
 int proxy_outfd = -EBADF, proxy_errfd = -EBADF;
 
-void init_proxy_streams(void)
+void __evl_setup_proxies(void)
 {
 	/*
 	 * This might fail if stdout/stderr are closed, just ignore if
@@ -51,7 +52,7 @@ int evl_create_proxy(int targetfd, size_t bufsz, size_t granularity,
 	attrs.fd = targetfd;
 	attrs.bufsz = bufsz;
 	attrs.granularity = granularity;
-	efd = create_evl_element(EVL_PROXY_DEV, name, &attrs, flags, NULL);
+	efd = evl_create_element(EVL_PROXY_DEV, name, &attrs, flags, NULL);
 	if (name)
 		free(name);
 

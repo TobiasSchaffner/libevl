@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <sched.h>
 #include <evl/compiler.h>
-#include <evl/evl.h>
+#include <evl/sys.h>
 #include <evl/mutex.h>
 #include <evl/event.h>
 #include <evl/thread.h>
@@ -37,7 +37,7 @@ static int init_event_vargs(struct evl_event *evt,
 	char *name = NULL;
 	int efd, ret;
 
-	if (evl_shared_memory == NULL)
+	if (__evl_shared_memory == NULL)
 		return -ENXIO;
 
 	if (fmt) {
@@ -50,13 +50,13 @@ static int init_event_vargs(struct evl_event *evt,
 	attrs.protocol = EVL_EVENT_GATED;
 	attrs.clockfd = clockfd;
 	attrs.initval = 0;
-	efd = create_evl_element(EVL_MONITOR_DEV, name, &attrs, flags, &eids);
+	efd = evl_create_element(EVL_MONITOR_DEV, name, &attrs, flags, &eids);
 	if (name)
 		free(name);
 	if (efd < 0)
 		return efd;
 
-	evt->u.active.state = evl_shared_memory + eids.state_offset;
+	evt->u.active.state = __evl_shared_memory + eids.state_offset;
 	__force_read_access(evt->u.active.state->flags);
 	evt->u.active.fundle = eids.fundle;
 	evt->u.active.efd = efd;
@@ -85,7 +85,7 @@ static int open_event_vargs(struct evl_event *evt,
 	struct evl_monitor_binding bind;
 	int ret, efd;
 
-	efd = open_evl_element_vargs(EVL_MONITOR_DEV, fmt, ap);
+	efd = evl_open_element_vargs(EVL_MONITOR_DEV, fmt, ap);
 	if (efd < 0)
 		return efd;
 
@@ -101,7 +101,7 @@ static int open_event_vargs(struct evl_event *evt,
 		goto fail;
 	}
 
-	evt->u.active.state = evl_shared_memory + bind.eids.state_offset;
+	evt->u.active.state = __evl_shared_memory + bind.eids.state_offset;
 	__force_read_access(evt->u.active.state->flags);
 	evt->u.active.fundle = bind.eids.fundle;
 	evt->u.active.efd = efd;
@@ -184,7 +184,7 @@ static struct evl_monitor_state *get_lock_state(struct evl_event *evt)
 	if (est->u.event.gate_offset == EVL_MONITOR_NOGATE)
 		return NULL;	/* Nobody waits on @evt */
 
-	return evl_shared_memory + est->u.event.gate_offset;
+	return __evl_shared_memory + est->u.event.gate_offset;
 }
 
 struct unwait_data {

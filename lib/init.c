@@ -17,6 +17,7 @@
 #include <linux/types.h>
 #include <valgrind/valgrind.h>
 #include <evl/evl.h>
+#include <evl/sys.h>
 #include <evl/syscall.h>
 #include <evl/thread.h>
 #include <asm/evl/vdso.h>
@@ -43,20 +44,20 @@ static int init_status;
 
 static struct evl_core_info core_info;
 
-int evl_ctlfd = -1;
+int __evl_ctlfd = -1;
 
-void *evl_shared_memory = NULL;
+void *__evl_shared_memory = NULL;
 
 static void atfork_unmap_shmem(void)
 {
-	if (evl_shared_memory) {
-		munmap(evl_shared_memory, core_info.shm_size);
-		evl_shared_memory = NULL;
+	if (__evl_shared_memory) {
+		munmap(__evl_shared_memory, core_info.shm_size);
+		__evl_shared_memory = NULL;
 	}
 
-	if (evl_ctlfd >= 0) {
-		close(evl_ctlfd);
-		evl_ctlfd = -1;
+	if (__evl_ctlfd >= 0) {
+		close(__evl_ctlfd);
+		__evl_ctlfd = -1;
 	}
 
 	init_once = PTHREAD_ONCE_INIT;
@@ -121,7 +122,7 @@ static inline int generic_init(void)
 		goto fail;
 	}
 
-	ret = attach_evl_clocks();
+	ret = __evl_attach_clocks();
 	if (ret)
 		goto fail;
 
@@ -133,8 +134,8 @@ static inline int generic_init(void)
 	}
 
 	pthread_atfork(NULL, NULL, atfork_unmap_shmem);
-	evl_ctlfd = ctlfd;
-	evl_shared_memory = shmem;
+	__evl_ctlfd = ctlfd;
+	__evl_shared_memory = shmem;
 
 	return 0;
 fail:
@@ -210,7 +211,7 @@ static int do_init(void)
 	if (ret)
 		return ret;
 
-	init_proxy_streams();
+	__evl_setup_proxies();
 
 	return 0;
 }

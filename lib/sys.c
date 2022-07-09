@@ -4,8 +4,7 @@
  * Copyright (C) 2018 Philippe Gerum  <rpm@xenomai.org>
  */
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -13,7 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
 #include <linux/types.h>
+#include <evl/sys.h>
 #include <uapi/evl/factory.h>
 #include "internal.h"
 
@@ -59,7 +61,7 @@ static int flip_fd_flags(int efd, int cmd, int flags)
  * Except for threads, closing the last file descriptor referring to
  * an element causes its automatic deletion.
  */
-int create_evl_element(const char *type, const char *name,
+int evl_create_element(const char *type, const char *name,
 		void *attrs, int clone_flags,
 		struct evl_element_ids *eids)
 {
@@ -148,7 +150,7 @@ out_factory:
 	return ret;
 }
 
-int open_evl_element_vargs(const char *type,
+int evl_open_element_vargs(const char *type,
 		const char *fmt, va_list ap)
 {
 	char *path, *name;
@@ -193,19 +195,19 @@ fail_open:
 	return ret;
 }
 
-int open_evl_element(const char *type, const char *fmt, ...)
+int evl_open_element(const char *type, const char *fmt, ...)
 {
 	va_list ap;
 	int efd;
 
 	va_start(ap, fmt);
-	efd = open_evl_element_vargs(type, fmt, ap);
+	efd = evl_open_element_vargs(type, fmt, ap);
 	va_end(ap);
 
 	return efd;
 }
 
-int create_evl_file(const char *type)
+int evl_open_raw(const char *type)
 {
 	char *devname;
 	int efd, ret;
@@ -234,4 +236,9 @@ fail:
 	free(devname);
 
 	return ret;
+}
+
+int evl_get_current_mode(void)
+{
+	return __evl_get_current_mode();
 }

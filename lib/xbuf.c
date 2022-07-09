@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <evl/sys.h>
 #include <evl/xbuf.h>
-#include "internal.h"
 
 int evl_create_xbuf(size_t i_bufsz, size_t o_bufsz,
 		int flags, const char *fmt, ...)
@@ -28,7 +28,7 @@ int evl_create_xbuf(size_t i_bufsz, size_t o_bufsz,
 
 	attrs.i_bufsz = i_bufsz;
 	attrs.o_bufsz = o_bufsz;
-	efd = create_evl_element(EVL_XBUF_DEV, name, &attrs, flags, NULL);
+	efd = evl_create_element(EVL_XBUF_DEV, name, &attrs, flags, NULL);
 	if (name)
 		free(name);
 

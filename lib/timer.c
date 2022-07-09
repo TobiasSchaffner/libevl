@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <evl/sys.h>
 #include <evl/syscall.h>
 #include <evl/timer.h>
 #include "internal.h"
@@ -15,13 +16,13 @@ int evl_new_timer(int clockfd)
 {
 	int ret, efd;
 
-	if (evl_mono_clockfd < 0)
+	if (__evl_mono_clockfd < 0)
 		return -ENXIO;
 
 	if (clockfd == EVL_CLOCK_MONOTONIC)
-		clockfd = evl_mono_clockfd;
+		clockfd = __evl_mono_clockfd;
 	else if (clockfd == EVL_CLOCK_REALTIME)
-		clockfd = evl_real_clockfd;
+		clockfd = __evl_real_clockfd;
 
 	ret = ioctl(clockfd, EVL_CLKIOC_NEW_TIMER, &efd);
 	if (ret)

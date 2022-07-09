@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <evl/compiler.h>
+#include <evl/sys.h>
 #include <evl/thread.h>
 #include <evl/observable.h>
 #include <evl/syscall.h>
@@ -28,7 +29,7 @@ int evl_create_observable(int flags, const char *fmt, ...)
 			return -ENOMEM;
 	}
 
-	efd = create_evl_element(EVL_OBSERVABLE_DEV, name, NULL, flags, NULL);
+	efd = evl_create_element(EVL_OBSERVABLE_DEV, name, NULL, flags, NULL);
 	if (name)
 		free(name);
 
@@ -41,10 +42,10 @@ static bool wants_oob_io(void)
 	 * Only non-EVL threads or members of the SCHED_WEAK class
 	 * should call in-band.
 	 */
-	if (evl_current == EVL_NO_HANDLE)
+	if (__evl_current == EVL_NO_HANDLE)
 		return false;
 
-	return !(evl_get_current_mode() & T_WEAK);
+	return !(__evl_get_current_mode() & T_WEAK);
 }
 
 int evl_update_observable(int ofd, const struct evl_notice *ntc, int nr)

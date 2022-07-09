@@ -17,7 +17,7 @@
 #include <sched.h>
 #include <evl/compiler.h>
 #include <evl/atomic.h>
-#include <evl/evl.h>
+#include <evl/sys.h>
 #include <evl/mutex.h>
 #include <evl/thread.h>
 #include <evl/syscall.h>
@@ -38,7 +38,7 @@ static int init_mutex_vargs(struct evl_mutex *mutex,
 	char *name = NULL;
 	int efd, ret;
 
-	if (evl_shared_memory == NULL)
+	if (__evl_shared_memory == NULL)
 		return -ENXIO;
 
 	/*
@@ -64,13 +64,13 @@ static int init_mutex_vargs(struct evl_mutex *mutex,
 	attrs.protocol = protocol;
 	attrs.clockfd = clockfd;
 	attrs.initval = ceiling;
-	efd = create_evl_element(EVL_MONITOR_DEV, name, &attrs,	flags, &eids);
+	efd = evl_create_element(EVL_MONITOR_DEV, name, &attrs,	flags, &eids);
 	if (name)
 		free(name);
 	if (efd < 0)
 		return efd;
 
-	gst = evl_shared_memory + eids.state_offset;
+	gst = __evl_shared_memory + eids.state_offset;
 	gst->u.gate.recursive = !!(flags & EVL_MUTEX_RECURSIVE);
 	mutex->u.active.state = gst;
 	atomic_store(&gst->u.gate.owner, EVL_NO_HANDLE);
@@ -106,7 +106,7 @@ static int open_mutex_vargs(struct evl_mutex *mutex,
 	struct evl_monitor_state *gst;
 	int ret, efd;
 
-	efd = open_evl_element_vargs(EVL_MONITOR_DEV, fmt, ap);
+	efd = evl_open_element_vargs(EVL_MONITOR_DEV, fmt, ap);
 	if (efd < 0)
 		return efd;
 
@@ -121,7 +121,7 @@ static int open_mutex_vargs(struct evl_mutex *mutex,
 		goto fail;
 	}
 
-	gst = evl_shared_memory + bind.eids.state_offset;
+	gst = __evl_shared_memory + bind.eids.state_offset;
 	mutex->u.active.state = gst;
 	__force_read_access(gst->flags);
 	__force_read_access(gst->u.gate.owner);
@@ -196,7 +196,7 @@ static int try_lock(struct evl_mutex *mutex)
 	fundle_t current;
 	int mode, ret;
 
-	current = evl_get_current();
+	current = __evl_get_current();
 	if (current == EVL_NO_HANDLE)
 		return -EPERM;
 
@@ -218,10 +218,10 @@ static int try_lock(struct evl_mutex *mutex)
 	 * Threads running in-band and/or enabling WOLI debug must go
 	 * through the slow syscall path.
 	 */
-	mode = evl_get_current_mode();
+	mode = __evl_get_current_mode();
 	if (!(mode & (T_INBAND|T_WEAK|T_WOLI))) {
 		if (mutex->u.active.protocol == EVL_GATE_PP) {
-			u_window = evl_get_current_window();
+			u_window = __evl_get_current_window();
 			/*
 			 * Can't nest lazy ceiling requests, have to
 			 * take the slow path when this happens.
@@ -319,7 +319,7 @@ int evl_unlock_mutex(struct evl_mutex *mutex)
 		return -EINVAL;
 
 	gst = mutex->u.active.state;
-	current = evl_get_current();
+	current = __evl_get_current();
 	if (!evl_is_mutex_owner(&gst->u.gate.owner, current))
 		return -EPERM;
 
@@ -332,13 +332,13 @@ int evl_unlock_mutex(struct evl_mutex *mutex)
 	if (gst->flags & EVL_MONITOR_SIGNALED)
 		goto slow_path;
 
-	mode = evl_get_current_mode();
+	mode = __evl_get_current_mode();
 	if (mode & (T_WEAK|T_WOLI))
 		goto slow_path;
 
 	if (evl_fast_unlock_mutex(&gst->u.gate.owner, current)) {
 		if (mutex->u.active.protocol == EVL_GATE_PP) {
-			u_window = evl_get_current_window();
+			u_window = __evl_get_current_window();
 			u_window->pp_pending = EVL_NO_HANDLE;
 		}
 		return 0;

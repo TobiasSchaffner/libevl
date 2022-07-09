@@ -30,7 +30,7 @@ int evl_control_sched(int policy,
 {
 	struct evl_sched_ctlreq ctlreq;
 
-	if (evl_ctlfd < 0)
+	if (__evl_ctlfd < 0)
 		return -ENXIO;
 
 	ctlreq.policy = policy;
@@ -38,7 +38,7 @@ int evl_control_sched(int policy,
 	ctlreq.param_ptr = __evl_ptr64(param);
 	ctlreq.info_ptr = __evl_ptr64(info);
 
-	return __evl_common_ioctl(evl_ctlfd, EVL_CTLIOC_SCHEDCTL, &ctlreq);
+	return __evl_common_ioctl(__evl_ctlfd, EVL_CTLIOC_SCHEDCTL, &ctlreq);
 }
 
 int evl_get_cpustate(int cpu, int *state_r)
@@ -47,13 +47,13 @@ int evl_get_cpustate(int cpu, int *state_r)
 	__u32 state;
 	int ret;
 
-	if (evl_ctlfd < 0)
+	if (__evl_ctlfd < 0)
 		return -ENXIO;
 
 	cpst.cpu = cpu;
 	cpst.state_ptr = __evl_ptr64(&state);
 
-	ret = __evl_common_ioctl(evl_ctlfd, EVL_CTLIOC_GET_CPUSTATE, &cpst);
+	ret = __evl_common_ioctl(__evl_ctlfd, EVL_CTLIOC_GET_CPUSTATE, &cpst);
 	if (ret)
 		return ret;
 
@@ -64,9 +64,9 @@ int evl_get_cpustate(int cpu, int *state_r)
 
 int evl_yield(void)
 {
-	if (evl_current == EVL_NO_HANDLE)
+	if (__evl_current == EVL_NO_HANDLE)
 		return -EPERM;
 
 	/* This is our sched_yield(). */
-	return oob_ioctl(evl_efd, EVL_THRIOC_YIELD) ? -errno : 0;
+	return oob_ioctl(__evl_current_efd, EVL_THRIOC_YIELD) ? -errno : 0;
 }

@@ -16,7 +16,7 @@
 #include <pthread.h>
 #include <evl/compiler.h>
 #include <evl/atomic.h>
-#include <evl/evl.h>
+#include <evl/sys.h>
 #include <evl/flags.h>
 #include <evl/thread.h>
 #include <evl/syscall.h>
@@ -36,7 +36,7 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 	int efd, ret;
 	va_list ap;
 
-	if (evl_shared_memory == NULL)
+	if (__evl_shared_memory == NULL)
 		return -ENXIO;
 
 	if (fmt) {
@@ -51,13 +51,13 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 	attrs.protocol = EVL_EVENT_MASK;
 	attrs.clockfd = clockfd;
 	attrs.initval = initval;
-	efd = create_evl_element(EVL_MONITOR_DEV, name, &attrs,	flags, &eids);
+	efd = evl_create_element(EVL_MONITOR_DEV, name, &attrs,	flags, &eids);
 	if (name)
 		free(name);
 	if (efd < 0)
 		return efd;
 
-	flg->u.active.state = evl_shared_memory + eids.state_offset;
+	flg->u.active.state = __evl_shared_memory + eids.state_offset;
 	atomic_store(&flg->u.active.state->u.event.value, initval);
 	flg->u.active.fundle = eids.fundle;
 	flg->u.active.efd = efd;
@@ -73,7 +73,7 @@ int evl_open_flags(struct evl_flags *flg, const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	efd = open_evl_element_vargs(EVL_MONITOR_DEV, fmt, ap);
+	efd = evl_open_element_vargs(EVL_MONITOR_DEV, fmt, ap);
 	va_end(ap);
 	if (efd < 0)
 		return efd;
@@ -90,7 +90,7 @@ int evl_open_flags(struct evl_flags *flg, const char *fmt, ...)
 		goto fail;
 	}
 
-	flg->u.active.state = evl_shared_memory + bind.eids.state_offset;
+	flg->u.active.state = __evl_shared_memory + bind.eids.state_offset;
 	__force_read_access(flg->u.active.state->u.event.value);
 	flg->u.active.fundle = bind.eids.fundle;
 	flg->u.active.efd = efd;
@@ -169,7 +169,7 @@ int evl_timedwait_flags(struct evl_flags *flg,
 	fundle_t current;
 	int ret;
 
-	current = evl_get_current();
+	current = __evl_get_current();
 	if (current == EVL_NO_HANDLE)
 		return -EPERM;
 
@@ -253,7 +253,7 @@ int evl_post_flags(struct evl_flags *flg, int bits)
 	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	if (!val || is_polled(state)) {
 	slow_path:
-		if (evl_get_current())
+		if (__evl_get_current())
 			ret = oob_ioctl(flg->u.active.efd,
 					EVL_MONIOC_SIGNAL, &mask);
 		else

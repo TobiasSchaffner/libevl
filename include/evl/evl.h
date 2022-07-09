@@ -20,7 +20,7 @@
 #include <evl/poll.h>
 #include <evl/proxy.h>
 
-#define __EVL__  20	/* API version */
+#define __EVL__  21	/* API version */
 
 #define EVL_ABI_PREREQ  27
 
@@ -37,8 +37,6 @@ extern "C" {
 int evl_init(void);
 
 void evl_sigdebug_handler(int sig, siginfo_t *si, void *ctxt);
-
-unsigned int evl_detect_fpu(void);
 
 struct evl_version evl_get_version(void);
 

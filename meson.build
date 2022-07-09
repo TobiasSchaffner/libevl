@@ -34,6 +34,7 @@ endif
 
 cc_flags = common_flags + [
   '-Wstrict-prototypes',
+  '-Wmissing-prototypes',
 ]
 add_project_arguments(cc.get_supported_arguments(cc_flags), language: 'c')
 

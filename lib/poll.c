@@ -9,13 +9,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <evl/sys.h>
 #include <evl/syscall.h>
 #include <evl/poll.h>
 #include "internal.h"
 
 int evl_new_poll(void)
 {
-	return create_evl_file(EVL_POLL_DEV);
+	return evl_open_raw(EVL_POLL_DEV);
 }
 
 static int update_pollset(int efd, int op, int fd, unsigned int events,

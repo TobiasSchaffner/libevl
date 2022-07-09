@@ -15,6 +15,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <evl/evl.h>
+#include <evl/sys.h>
 #include <evl/thread.h>
 #include <evl/compiler.h>
 #include <linux/types.h>
@@ -24,21 +25,21 @@
 #include "internal.h"
 
 __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-fundle_t evl_current = EVL_NO_HANDLE;
+fundle_t __evl_current = EVL_NO_HANDLE;
 
 __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-int evl_efd = -1;
+int __evl_current_efd = -1;
 
 __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-struct evl_user_window *evl_current_window;
+struct evl_user_window *__evl_current_window;
 
 static pthread_once_t atfork_once = PTHREAD_ONCE_INIT;
 
 static void clear_tls(void)
 {
-	evl_current = EVL_NO_HANDLE;
-	evl_current_window = NULL;
-	evl_efd = -1;
+	__evl_current = EVL_NO_HANDLE;
+	__evl_current_window = NULL;
+	__evl_current_efd = -1;
 }
 
 static void atfork_clear_tls(void)
@@ -74,7 +75,7 @@ int evl_attach_thread(int flags, const char *fmt, ...)
 	 * Cannot bind twice. Although the core would catch it, we can
 	 * detect this issue early.
 	 */
-	if (evl_current != EVL_NO_HANDLE)
+	if (__evl_current != EVL_NO_HANDLE)
 		return -EBUSY;
 
 	if (fmt) {
@@ -85,15 +86,15 @@ int evl_attach_thread(int flags, const char *fmt, ...)
 			return -ENOMEM;
 	}
 
-	efd = create_evl_element(EVL_THREAD_DEV, name, NULL, flags, &eids);
+	efd = evl_create_element(EVL_THREAD_DEV, name, NULL, flags, &eids);
 	if (name)
 		free(name);
 	if (efd < 0)
 		return efd;
 
-	evl_current = eids.fundle;
-	evl_current_window = evl_shared_memory + eids.state_offset;
-	evl_efd = efd;
+	__evl_current = eids.fundle;
+	__evl_current_window = __evl_shared_memory + eids.state_offset;
+	__evl_current_efd = efd;
 
 	/*
 	 * Translate current in-band scheduling parameters to EVL
@@ -146,20 +147,20 @@ int evl_detach_thread(int flags)
 	if (flags)
 		return -EINVAL;
 
-	if (evl_current == EVL_NO_HANDLE)
+	if (__evl_current == EVL_NO_HANDLE)
 		return -EPERM;
 
 	/*
 	 * Force T_WOSS off, there is no point in receiving SIGDEBUG
 	 * as a result of calling ioctl() to detach from the core.
 	 */
-	oob_ioctl(evl_efd, EVL_THRIOC_CLEAR_MODE, &mode);
+	oob_ioctl(__evl_current_efd, EVL_THRIOC_CLEAR_MODE, &mode);
 
-	ret = ioctl(evl_efd, EVL_THRIOC_DETACH_SELF);
+	ret = ioctl(__evl_current_efd, EVL_THRIOC_DETACH_SELF);
 	if (ret)
 		return -errno;
 
-	close(evl_efd);
+	close(__evl_current_efd);
 	clear_tls();
 
 	return 0;
@@ -172,25 +173,25 @@ int evl_detach_self(void)
 
 int evl_get_self(void)
 {
-	return evl_efd;
+	return __evl_current_efd;
 }
 
 bool evl_is_inband(void)
 {
-	return !!(evl_get_current_mode() & T_INBAND);
+	return __evl_is_inband();
 }
 
 int evl_switch_oob(void)
 {
 	int ret;
 
-	if (evl_current == EVL_NO_HANDLE)
+	if (__evl_current == EVL_NO_HANDLE)
 		return -EPERM;
 
 	if (!evl_is_inband())
 		return 0;
 
-	ret = oob_ioctl(evl_efd, EVL_THRIOC_SWITCH_OOB);
+	ret = oob_ioctl(__evl_current_efd, EVL_THRIOC_SWITCH_OOB);
 
 	return ret ? -errno : 0;
 }
@@ -202,10 +203,10 @@ int evl_switch_inband(void)
 	if (evl_is_inband())
 		return 0;
 
-	if (evl_current == EVL_NO_HANDLE)
+	if (__evl_current == EVL_NO_HANDLE)
 		return -EPERM;
 
-	ret = ioctl(evl_efd, EVL_THRIOC_SWITCH_INBAND);
+	ret = ioctl(__evl_current_efd, EVL_THRIOC_SWITCH_INBAND);
 
 	return ret ? -errno : 0;
 }

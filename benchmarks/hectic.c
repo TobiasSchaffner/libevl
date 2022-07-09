@@ -26,6 +26,7 @@
 #include <sys/ioctl.h>
 #include <evl/compiler.h>
 #include <evl/evl.h>
+#include <evl/sys.h>
 #include <uapi/asm/evl/fptest.h>
 #include <uapi/evl/devices/hectic.h>
 

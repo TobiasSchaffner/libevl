@@ -16,7 +16,7 @@
 #include <pthread.h>
 #include <evl/compiler.h>
 #include <evl/atomic.h>
-#include <evl/evl.h>
+#include <evl/sys.h>
 #include <evl/sem.h>
 #include <evl/thread.h>
 #include <evl/syscall.h>
@@ -35,7 +35,7 @@ int evl_create_sem(struct evl_sem *sem, int clockfd,
 	int efd, ret;
 	va_list ap;
 
-	if (evl_shared_memory == NULL)
+	if (__evl_shared_memory == NULL)
 		return -ENXIO;
 
 	if (fmt) {
@@ -50,13 +50,13 @@ int evl_create_sem(struct evl_sem *sem, int clockfd,
 	attrs.protocol = EVL_EVENT_COUNT;
 	attrs.clockfd = clockfd;
 	attrs.initval = initval;
-	efd = create_evl_element(EVL_MONITOR_DEV, name, &attrs,	flags, &eids);
+	efd = evl_create_element(EVL_MONITOR_DEV, name, &attrs,	flags, &eids);
 	if (name)
 		free(name);
 	if (efd < 0)
 		return efd;
 
-	sem->u.active.state = evl_shared_memory + eids.state_offset;
+	sem->u.active.state = __evl_shared_memory + eids.state_offset;
 	atomic_store(&sem->u.active.state->u.event.value, initval);
 	sem->u.active.fundle = eids.fundle;
 	sem->u.active.efd = efd;
@@ -71,11 +71,11 @@ int evl_open_sem(struct evl_sem *sem, const char *fmt, ...)
 	int ret, efd;
 	va_list ap;
 
-	if (evl_shared_memory == NULL)
+	if (__evl_shared_memory == NULL)
 		return -ENXIO;
 
 	va_start(ap, fmt);
-	efd = open_evl_element_vargs(EVL_MONITOR_DEV, fmt, ap);
+	efd = evl_open_element_vargs(EVL_MONITOR_DEV, fmt, ap);
 	va_end(ap);
 	if (efd < 0)
 		return efd;
@@ -92,7 +92,7 @@ int evl_open_sem(struct evl_sem *sem, const char *fmt, ...)
 		goto fail;
 	}
 
-	sem->u.active.state = evl_shared_memory + bind.eids.state_offset;
+	sem->u.active.state = __evl_shared_memory + bind.eids.state_offset;
 	__force_read_access(sem->u.active.state->u.event.value);
 	sem->u.active.fundle = bind.eids.fundle;
 	sem->u.active.efd = efd;
@@ -165,7 +165,7 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 	fundle_t current;
 	int ret;
 
-	current = evl_get_current();
+	current = __evl_get_current();
 	if (current == EVL_NO_HANDLE)
 		return -EPERM;
 
@@ -225,7 +225,7 @@ int evl_put_sem(struct evl_sem *sem)
 	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	if (val < 0 || is_polled(state)) {
 	slow_path:
-		if (evl_get_current())
+		if (__evl_get_current())
 			ret = oob_ioctl(sem->u.active.efd,
 					EVL_MONIOC_SIGNAL, &sigval);
 		else
