@@ -63,10 +63,7 @@ ssize_t evl_send_proxy(int proxyfd, const void *buf, size_t count)
 {
 	ssize_t ret;
 
-	if (evl_is_inband())
-		ret = write(proxyfd, buf, count);
-	else
-		ret = oob_write(proxyfd, buf, count);
+	ret = __evl_conforming_io(proxyfd, write, buf, count);
 
 	return ret < 0 ? -errno : ret;
 }

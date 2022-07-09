@@ -108,13 +108,13 @@ static inline bool __evl_is_inband(void)
 	return !!(__evl_get_current_mode() & T_INBAND);
 }
 
-#define __evl_common_ioctl(__efd, __args...)			\
+#define __evl_conforming_io(__efd, __call, __args...)		\
 	({							\
 		int __ret;					\
 		if (__evl_is_inband())				\
-			__ret = ioctl(__efd, ##__args);		\
+			__ret = __call(__efd, ##__args);	\
 		else						\
-			__ret = oob_ioctl(__efd, ##__args);	\
+			__ret = oob_##__call(__efd, ##__args);	\
 		__ret ? -errno : 0;				\
 	})
 
