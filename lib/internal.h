@@ -15,18 +15,22 @@
 
 #define __evl_ptr64(__ptr)	((__u64)(uintptr_t)(__ptr))
 
-#if __WORDSIZE == 64 || __TIMESIZE == 64
+#if __WORDSIZE == 64 || defined(__USE_TIME_BITS64)
 /*
  * If timespec is y2038-safe, we don't need to bounce via an
  * __evl_timespec buffer, since both types are guaranteed compatible
- * bitwise. y2038-proof glibc sets __TIMESIZE to the architecture
- * bitness, others (including earlier releases) might not so we check
- * __WORDSIZE too.
+ * bitwise. y2038-safe *libc such as glibc and musl set
+ * __USE_TIME_BITS64 as required by the uapi contract with the kernel
+ * [1], others (including earlier releases) might not so we check
+ * __WORDSIZE too in order to always have it right for 64bit
+ * architectures.
  *
- * CAUTION: the assumption here is that a y2038-safe timespec type has
- * to be compatible bitwise with __kernel_timespec, and __evl_timespec
- * is guaranteed compatible bitwise with __kernel_timespec too. So we
- * may cast values safely between these types.
+ * CAUTION: the assumption here is that both the y2038-safe timespec
+ * type and __evl_timespec are compatible bitwise with
+ * __kernel_timespec, so we may coerce values safely between these
+ * types.
+ *
+ * [1] https://sourceware.org/glibc/wiki/Y2038ProofnessDesign
  */
 #define __evl_ktimespec(__ts, __kts)			\
 	({						\
