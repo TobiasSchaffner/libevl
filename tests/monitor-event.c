@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <evl/compiler.h>
 #include <evl/thread.h>
 #include <evl/event.h>
 #include <evl/mutex.h>
@@ -28,19 +30,37 @@ struct test_context {
 
 static int receiverfd;
 
+#define HINT	"HINT: time to update your kernel?\n"	\
+		"      make sure you have the following kernel patch in:\n" \
+		"  ->  evl/wait: prevent LKSLEEP HM notification upon sleep on a gated event\n"
+
+static __maybe_unused void sigdebug_handler(int sig, siginfo_t *si, void *context)
+{
+	write(1, HINT, sizeof(HINT) - 1);
+	__Texpr_assert(0);	/* Bummer. */
+}
+
 static void *event_receiver(void *arg)
 {
+	struct sigaction sa __maybe_unused;
 	struct test_context *p = arg;
 	struct timespec now, timeout;
 	int ret;
 
 	__Tcall_assert(receiverfd, evl_attach_self("monitor-event-receiver:%d", getpid()));
 #ifndef __ESHI__
+	/* Install a handler for a signal we don't want to receive. */
+	sigemptyset(&sa.sa_mask);
+	sa.sa_sigaction = sigdebug_handler;
+	sa.sa_flags = SA_SIGINFO;
+	sigaction(SIGDEBUG, &sa, NULL);
+
 	/*
-	 * Disable WOLI in case CONFIG_EVL_DEBUG_WOLI is set, as we
-	 * are about to sleep while holding a mutex.
+	 * Turn on WOLI, to make sure we won't receive be notified of
+	 * LKSLEEP via SIGDEBUG, despite attempts to sleep on the
+	 * event while holding the mutex guarding it.
 	 */
-	__Tcall_assert(ret, evl_clear_thread_mode(receiverfd, T_WOLI, NULL));
+	__Tcall_assert(ret, evl_set_thread_mode(receiverfd, T_WOLI|T_HMSIG, NULL));
 #endif
 	__Tcall_assert(ret, evl_get_sem(&p->start));
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &now);
