@@ -36,7 +36,8 @@ static int receiverfd;
 
 static __maybe_unused void sigdebug_handler(int sig, siginfo_t *si, void *context)
 {
-	write(1, HINT, sizeof(HINT) - 1);
+	ssize_t ret = write(1, HINT, sizeof(HINT) - 1);
+	(void)ret;
 	__Texpr_assert(0);	/* Bummer. */
 }
 
