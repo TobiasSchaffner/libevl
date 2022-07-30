@@ -667,14 +667,12 @@ static void mark_pages(struct evl_heap_extent *ext,
 
 #endif
 
-ssize_t evl_check_block(struct evl_heap *heap, void *block)
+ssize_t evl_check_block_unlocked(struct evl_heap *heap, void *block)
 {
 	unsigned long pg, pgoff, boff;
 	struct evl_heap_extent *ext;
 	ssize_t ret = -EINVAL;
 	size_t bsize;
-
-	evl_lock_mutex(&heap->lock);
 
 	/*
 	 * Find the extent the checked block is originating from.
@@ -684,7 +682,7 @@ ssize_t evl_check_block(struct evl_heap *heap, void *block)
 		    block < ext->memlim)
 			goto found;
 	}
-	goto out;
+	return ret;
 found:
 	/* Calculate the page number from the block address. */
 	pgoff = block - ext->membase;
@@ -696,11 +694,24 @@ found:
 			bsize = (1 << ext->pagemap[pg].type);
 			boff = pgoff & ~EVL_HEAP_PAGE_MASK;
 			if ((boff & (bsize - 1)) != 0) /* Not at block start? */
-				goto out;
+				return -EINVAL;
 		}
 		ret = (ssize_t)bsize;
 	}
-out:
+
+	return ret;
+}
+
+ssize_t evl_check_block(struct evl_heap *heap, void *block)
+{
+	ssize_t ret;
+
+	ret = evl_lock_mutex(&heap->lock);
+	if (ret)
+		return ret;
+
+	ret = evl_check_block_unlocked(heap, block);
+
 	evl_unlock_mutex(&heap->lock);
 
 	return ret;
@@ -982,7 +993,7 @@ found:
 	return pagenr_to_addr(ext, pg);
 }
 
-void *evl_alloc_block(struct evl_heap *heap, size_t size)
+void *evl_alloc_block_unlocked(struct evl_heap *heap, size_t size)
 {
 	struct evl_heap_extent *ext;
 	int log2size, ilog, pg, b;
@@ -1023,8 +1034,6 @@ void *evl_alloc_block(struct evl_heap *heap, size_t size)
 		ilog = log2size - EVL_HEAP_MIN_LOG2;
 		assert(ilog >= 0 && ilog < EVL_HEAP_MAX_BUCKETS);
 
-		evl_lock_mutex(&heap->lock);
-
 		list_for_each_entry(ext, &heap->extents, next) {
 			pg = heap->buckets[ilog];
 			if (pg < 0) /* Empty page list? */
@@ -1052,32 +1061,41 @@ void *evl_alloc_block(struct evl_heap *heap, size_t size)
 				(b << log2size);
 			if (ext->pagemap[pg].map == -1U)
 				move_page_back(heap, ext, pg, log2size);
-			goto out;
+			return block;
 		}
 
 		/* No free block in bucketed memory, add one page. */
 		block = add_free_range(heap, bsize, log2size);
 	} else {
-		evl_lock_mutex(&heap->lock);
 		/* Add a range of contiguous free pages. */
 		block = add_free_range(heap, bsize, 0);
 	}
-out:
+
+	return block;
+}
+
+void *evl_alloc_block(struct evl_heap *heap, size_t size)
+{
+	void *block;
+
+	if (evl_lock_mutex(&heap->lock))
+		return NULL;
+
+	block = evl_alloc_block_unlocked(heap, size);
+
 	evl_unlock_mutex(&heap->lock);
 
 	return block;
 }
 
-int evl_free_block(struct evl_heap *heap, void *block)
+int evl_free_block_unlocked(struct evl_heap *heap, void *block)
 {
 	struct evl_heap_extent *ext;
 	unsigned long pgoff, boff;
-	int log2size, ret = 0, n;
+	int log2size, n;
 	unsigned int pg;
 	uint32_t oldmap;
 	size_t bsize;
-
-	evl_lock_mutex(&heap->lock);
 
 	/*
 	 * Find the extent from which the returned block is
@@ -1088,13 +1106,13 @@ int evl_free_block(struct evl_heap *heap, void *block)
 			goto found;
 	}
 
-	goto bad;
+	return -EINVAL;
 found:
 	/* Compute the heading page number in the page map. */
 	pgoff = block - ext->membase;
 	pg = pgoff >> EVL_HEAP_PAGE_SHIFT;
 	if (!page_is_valid(ext, pg))
-		goto bad;
+		return -EINVAL;
 
 	switch (ext->pagemap[pg].type) {
 	case page_list:
@@ -1109,7 +1127,7 @@ found:
 		assert(bsize < EVL_HEAP_PAGE_SIZE);
 		boff = pgoff & ~EVL_HEAP_PAGE_MASK;
 		if ((boff & (bsize - 1)) != 0) /* Not at block start? */
-			goto bad;
+			return -EINVAL;
 
 		n = boff >> log2size; /* Block position in page. */
 		oldmap = ext->pagemap[pg].map;
@@ -1126,18 +1144,30 @@ found:
 			remove_page(heap, ext, pg, log2size);
 			release_page_range(ext, pagenr_to_addr(ext, pg),
 					   EVL_HEAP_PAGE_SIZE);
-		} else if (oldmap == -1U)
-			move_page_front(heap, ext, pg, log2size);
+		} else {
+			if (oldmap == -1U)
+				move_page_front(heap, ext, pg, log2size);
+		}
 	}
 
 	heap->used_size -= bsize;
-out:
+
+	return 0;
+}
+
+int evl_free_block(struct evl_heap *heap, void *block)
+{
+	int ret;
+
+	ret = evl_lock_mutex(&heap->lock);
+	if (ret)
+		return ret;
+
+	ret = evl_free_block_unlocked(heap, block);
+
 	evl_unlock_mutex(&heap->lock);
 
 	return ret;
-bad:
-	ret = -EINVAL;
-	goto out;
 }
 
 static inline int compare_range_by_size(const struct avlh *l, const struct avlh *r)
@@ -1242,7 +1272,7 @@ static ssize_t add_extent(void *mem, size_t size)
 	return (ssize_t)user_size;
 }
 
-int evl_init_heap(struct evl_heap *heap, void *mem, size_t size)
+int evl_init_heap_unlocked(struct evl_heap *heap, void *mem, size_t size)
 {
 	struct evl_heap_extent *ext = mem;
 	ssize_t ret;
@@ -1250,20 +1280,13 @@ int evl_init_heap(struct evl_heap *heap, void *mem, size_t size)
 
 	list_init(&heap->extents);
 
-	ret = evl_new_mutex(&heap->lock, "heap:%.3d",
-			atomic_fetch_add(&heap_serial, 1));
-	if (ret < 0)
-		return ret;
-
-	/* Reset bucket page lists, all empty. */
+	/* Reset the bucket page lists, all empty. */
 	for (n = 0; n < EVL_HEAP_MAX_BUCKETS; n++)
 		heap->buckets[n] = -1U;
 
 	ret = add_extent(mem, size);
-	if (ret < 0) {
-		evl_close_mutex(&heap->lock);
+	if (ret < 0)
 		return ret;
-	}
 
 	list_append(&ext->next, &heap->extents);
 	heap->raw_size = size;
@@ -1273,7 +1296,23 @@ int evl_init_heap(struct evl_heap *heap, void *mem, size_t size)
 	return 0;
 }
 
-int evl_extend_heap(struct evl_heap *heap, void *mem, size_t size)
+int evl_init_heap(struct evl_heap *heap, void *mem, size_t size)
+{
+	ssize_t ret;
+
+	ret = evl_new_mutex(&heap->lock, "heap:%.3d",
+			atomic_fetch_add(&heap_serial, 1));
+	if (ret < 0)
+		return ret;
+
+	ret = evl_init_heap_unlocked(heap, mem, size);
+	if (ret < 0)
+		evl_close_mutex(&heap->lock);
+
+	return ret;
+}
+
+int evl_extend_heap_unlocked(struct evl_heap *heap, void *mem, size_t size)
 {
 	struct evl_heap_extent *ext = mem;
 	ssize_t ret;
@@ -1282,13 +1321,41 @@ int evl_extend_heap(struct evl_heap *heap, void *mem, size_t size)
 	if (ret < 0)
 		return ret;
 
-	evl_lock_mutex(&heap->lock);
 	list_append(&ext->next, &heap->extents);
 	heap->raw_size += size;
 	heap->usable_size += ret;
-	evl_unlock_mutex(&heap->lock);
 
 	return 0;
+}
+
+int evl_extend_heap(struct evl_heap *heap, void *mem, size_t size)
+{
+	int ret;
+
+	ret = evl_lock_mutex(&heap->lock);
+	if (ret)
+		return ret;
+
+	ret = evl_extend_heap_unlocked(heap, mem, size);
+
+	evl_unlock_mutex(&heap->lock);
+
+	return ret;
+}
+
+void evl_destroy_heap_unlocked(struct evl_heap *heap)
+{
+	/*
+	 * NOP so far. We keep libcalls out of line by convention for
+	 * people who want to do late binding to the libevl API via
+	 * the dl interface.
+	 */
+}
+
+void evl_destroy_heap(struct evl_heap *heap)
+{
+	evl_destroy_heap_unlocked(heap);
+	evl_close_mutex(&heap->lock);
 }
 
 size_t evl_heap_raw_size(const struct evl_heap *heap)
@@ -1304,9 +1371,4 @@ size_t evl_heap_size(const struct evl_heap *heap)
 size_t evl_heap_used(const struct evl_heap *heap)
 {
 	return heap->used_size;
-}
-
-void evl_destroy_heap(struct evl_heap *heap)
-{
-	evl_close_mutex(&heap->lock);
 }

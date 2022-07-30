@@ -116,19 +116,36 @@ struct evl_heap {
 extern "C" {
 #endif
 
+int evl_init_heap_unlocked(struct evl_heap *heap,
+			void *mem, size_t size);
+
 int evl_init_heap(struct evl_heap *heap,
 		void *mem, size_t size);
 
+int evl_extend_heap_unlocked(struct evl_heap *heap,
+			void *mem, size_t size);
+
 int evl_extend_heap(struct evl_heap *heap,
-		   void *mem, size_t size);
+		void *mem, size_t size);
+
+void evl_destroy_heap_unlocked(struct evl_heap *heap);
 
 void evl_destroy_heap(struct evl_heap *heap);
+
+void *evl_alloc_block_unlocked(struct evl_heap *heap,
+		size_t size) __alloc_size(2);
 
 void *evl_alloc_block(struct evl_heap *heap,
 		size_t size) __alloc_size(2);
 
+int evl_free_block_unlocked(struct evl_heap *heap,
+			void *block);
+
 int evl_free_block(struct evl_heap *heap,
 		void *block);
+
+ssize_t evl_check_block_unlocked(struct evl_heap *heap,
+				void *block);
 
 ssize_t evl_check_block(struct evl_heap *heap,
 			void *block);
