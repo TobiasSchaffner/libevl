@@ -57,9 +57,9 @@ static void *event_receiver(void *arg)
 	sigaction(SIGDEBUG, &sa, NULL);
 
 	/*
-	 * Turn on WOLI, to make sure we won't receive be notified of
-	 * LKSLEEP via SIGDEBUG, despite attempts to sleep on the
-	 * event while holding the mutex guarding it.
+	 * Turn on WOLI, to make sure we won't be notified about any
+	 * LKSLEEP condition via SIGDEBUG, despite attempts to sleep
+	 * on the event while holding the mutex guarding it.
 	 */
 	__Tcall_assert(ret, evl_set_thread_mode(receiverfd, T_WOLI|T_HMSIG, NULL));
 #endif
