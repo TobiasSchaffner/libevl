@@ -34,7 +34,7 @@ case "$opt" in
    -L) full_path=true;
        do_list=true;
        shift;;
-   -@) echo "run EVL tests"
+   -@) echo "run the EVL tests"
        exit 0;;
    --) shift; break;;
    esac
