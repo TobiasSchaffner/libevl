@@ -46,12 +46,12 @@ libevl = both_libraries('evl', libevl_sources,
      c_args : [ '-DLIBVERSION="' + libevl_version + '"' ],
      install : true,
      version : libevl_dso_version,
-     dependencies : [ libsys_dep, pthread_dep, rt_dep ],
+     dependencies : [ libsys_dep, pthread_dep ],
 )
 
 libevl_dep = declare_dependency(link_with : libevl,
   include_directories : [ libevl_incdirs ],
-  dependencies : [ pthread_dep, rt_dep ],
+  dependencies : pthread_dep,
 )
 
 pkg = import('pkgconfig')

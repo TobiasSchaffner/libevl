@@ -43,7 +43,6 @@ cxx_flags = common_flags
 add_project_arguments(cxx.get_supported_arguments(cxx_flags), language: 'cpp')
 
 pthread_dep = dependency('threads')
-rt_dep = cc.find_library('rt', required : true)
 
 # Do some architecture name remapping
 libevl_arch = host_machine.cpu_family()

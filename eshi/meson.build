@@ -36,10 +36,10 @@ libeshi = both_libraries('eshi', libeshi_sources,
      c_args : [ '-DLIBVERSION="' + libevl_version + '"' ],
      install : true,
      version : libeshi_dso_version,
-     dependencies : [ pthread_dep, rt_dep ],
+     dependencies : pthread_dep,
 )
 
 libeshi_dep = declare_dependency(link_with : libeshi,
   include_directories : [ libeshi_incdir, libevl_incdirs ],
-  dependencies : [ pthread_dep, rt_dep ],
+  dependencies : pthread_dep,
 )
