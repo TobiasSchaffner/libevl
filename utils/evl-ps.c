@@ -29,12 +29,12 @@ static cpu_set_t cpu_restrict;
 #define DISPLAY_TIMES  2
 #define DISPLAY_SCHED  4
 #define DISPLAY_WAIT   8
+#define DISPLAY_LONG   16
 
 #define DISPLAY_NUMERIC    32
 #define DISPLAY_MODIFIERS  DISPLAY_NUMERIC
 
 #define DISPLAY_DEFAULT_FORMAT  DISPLAY_SCHED
-#define DISPLAY_LONG_FORMAT     (DISPLAY_SCHED|DISPLAY_TIMES|DISPLAY_STATE)
 
 static int display_format;
 
@@ -451,12 +451,12 @@ static void display_time(struct thread_info *ti)
 	msecs = t / ONE_MILLION;
 	t = (int)(ti->cpu_time % ONE_MILLION);
 	usecs = (int)(t / 1000ULL);
-	printf("%.2d:%.3d.%.3d  ", secs, msecs, usecs);
+	printf("%5d:%.3d.%.3d    ", secs, msecs, usecs);
 }
 
 static struct display_handler time_handler = {
 	.header = "CPUTIME",
-	.header_fmt = "%-12s",
+	.header_fmt = "   %-14s",
 	.display_data = display_time,
 };
 
@@ -611,12 +611,12 @@ static struct display_handler rwakeups_handler = {
 
 static void display_wchan(struct thread_info *ti)
 {
-	printf("%-15s", ti->wchan);
+	printf("%-22s", ti->wchan);
 }
 
 static struct display_handler wchan_handler = {
 	.header = "WCHAN",
-	.header_fmt = "%-15s",
+	.header_fmt = "%-22s",
 	.display_data = display_wchan,
 };
 
@@ -633,13 +633,13 @@ static void print_thread_info(void)
 	chain = &cpu_handler;
 	cpu_handler.next = &pid_handler;
 	h = &pid_handler;
-	if (display_format & DISPLAY_SCHED) {
+	if (display_format & (DISPLAY_SCHED|DISPLAY_LONG)) {
 		h->next = &policy_handler;
 		h = &policy_handler;
 		h->next = &prio_handler;
 		h = &prio_handler;
 	}
-	if (display_format & DISPLAY_STATE) {
+	if (display_format & (DISPLAY_STATE|DISPLAY_LONG)) {
 		h->next = &inbandsw_handler;
 		h = &inbandsw_handler;
 		h->next = &ctxsw_handler;
@@ -651,7 +651,7 @@ static void print_thread_info(void)
 		h->next = &state_handler;
 		h = &state_handler;
 	}
-	if (display_format & DISPLAY_TIMES) {
+	if (display_format & (DISPLAY_TIMES|DISPLAY_LONG)) {
 		h->next = &timeout_handler;
 		h = &timeout_handler;
 		h->next = &percent_cpu_handler;
@@ -659,13 +659,15 @@ static void print_thread_info(void)
 		h->next = &time_handler;
 		h = &time_handler;
 	}
-	if (display_format & DISPLAY_WAIT) {
-		h->next = &timeout_handler;
-		h = &timeout_handler;
-		h->next = &rwakeups_handler;
-		h = &rwakeups_handler;
-		h->next = &state_handler;
-		h = &state_handler;
+	if (display_format & (DISPLAY_WAIT|DISPLAY_LONG)) {
+		if (!(display_format & DISPLAY_LONG)) {
+			h->next = &timeout_handler;
+			h = &timeout_handler;
+			h->next = &rwakeups_handler;
+			h = &rwakeups_handler;
+			h->next = &state_handler;
+			h = &state_handler;
+		}
 		h->next = &wchan_handler;
 		h = &wchan_handler;
 	}
@@ -785,13 +787,13 @@ int main(int argc, char *const argv[])
 			display_format |= DISPLAY_TIMES;
 			break;
 		case 'l':
-			display_format |= DISPLAY_LONG_FORMAT;
+			display_format |= DISPLAY_LONG;
 			break;
 		case 'n':
 			display_format |= DISPLAY_NUMERIC;
 			break;
 		case 'w':
-			display_format = DISPLAY_WAIT;
+			display_format |= DISPLAY_WAIT;
 			break;
 		case 'S':
 			for (p = optarg; *p; p++) {
