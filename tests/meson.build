@@ -26,6 +26,7 @@ test_programs = [
     'monitor-flags',
     'monitor-pi',
     'monitor-pi-deadlock',
+    'monitor-pi-stress',
     'monitor-pp-dynamic',
     'monitor-pp-lower',
     'monitor-pp-nested',
