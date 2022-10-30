@@ -11,17 +11,30 @@
 #include <evl/thread.h>
 #include <evl/mutex.h>
 #include <evl/clock.h>
+#include <evl/sched.h>
 #include <evl/sem.h>
 #include "helpers.h"
 
 #define LOW_PRIO	1
-#define HIGH_PRIO	2
+#define MEDIUM_PRIO	2
+#define HIGH_PRIO	3
 
 struct test_context {
 	struct evl_mutex lock;
 	struct evl_sem start;
 	struct evl_sem sem;
 };
+
+static bool check_priority(int tfd, int prio)
+{
+	struct evl_thread_state statebuf;
+	int ret;
+
+	__Tcall_assert(ret, evl_get_state(tfd, &statebuf));
+
+	return statebuf.eattrs.sched_policy == SCHED_FIFO &&
+		statebuf.eattrs.sched_priority == prio;
+}
 
 static void *pi_contend_timeout(void *arg)
 {
@@ -38,25 +51,16 @@ static void *pi_contend_timeout(void *arg)
 	__Tcall_assert(ret, evl_put_sem(&p->sem));
 
 	if (__Fcall(ret, evl_timedlock_mutex(&p->lock, &timeout)) &&
-		__Texpr(ret == -ETIMEDOUT))
+		__Texpr(ret == -ETIMEDOUT)) {
 		return (void *)1;
+	}
 
 	return NULL;
 }
 
-static bool check_priority(int tfd, int prio)
-{
-	struct evl_thread_state statebuf;
-	int ret;
-
-	__Tcall_assert(ret, evl_get_state(tfd, &statebuf));
-
-	return statebuf.eattrs.sched_policy == SCHED_FIFO &&
-		statebuf.eattrs.sched_priority == prio;
-}
-
 int main(int argc, char *argv[])
 {
+	struct evl_sched_attrs attrs;
 	struct sched_param param;
 	int tfd, gfd, sfd, ret;
 	struct test_context c;
@@ -91,10 +95,30 @@ int main(int argc, char *argv[])
 	__Tcall_assert(ret, evl_lock_mutex(&c.lock));
 	__Tcall_assert(ret, evl_put_sem(&c.start));
 	__Tcall_assert(ret, evl_get_sem(&c.sem));
+
+	/*
+	 * We should have been boosted by now, since we hold c.lock
+	 * which the high priority contender wants as well.
+	 */
 	__Texpr_assert(check_priority(tfd, HIGH_PRIO));
+
+	/*
+	 * Make sure we cannot downgrade our effective priority as
+	 * long as we are granted a boost.
+	 */
+	attrs.sched_policy = SCHED_FIFO;
+	attrs.sched_priority = MEDIUM_PRIO;
+	__Tcall_assert(ret, evl_set_schedattr(tfd, &attrs));
+	__Texpr_assert(check_priority(tfd, HIGH_PRIO));
+
 	__Texpr_assert(pthread_join(contender, &status) == 0);
 	__Tcall_assert(ret, evl_unlock_mutex(&c.lock));
-	__Texpr_assert(check_priority(tfd, LOW_PRIO));
+
+	/*
+	 * Make sure the change brought by evl_set_schedattr() is
+	 * applied once deboosted.
+	 */
+	__Texpr_assert(check_priority(tfd, MEDIUM_PRIO));
 	__Fexpr_assert(status == NULL);
 
 	evl_close_sem(&c.start);
