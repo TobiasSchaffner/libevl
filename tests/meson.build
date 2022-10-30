@@ -37,6 +37,7 @@ test_programs = [
     'monitor-steal',
     'monitor-trylock',
     'monitor-wait-multiple',
+    'monitor-wait-requeue',
     'observable-hm',
     'observable-inband',
     'observable-unicast',
