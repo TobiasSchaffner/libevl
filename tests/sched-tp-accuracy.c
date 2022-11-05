@@ -177,24 +177,20 @@ int main(int argc, char *argv[])
 	 * For a recurring global time frame of 400 ms, we define a TP
 	 * schedule as follows:
 	 *
-	 * - thread(s) assigned to partition #2 (tag C) shall be
-	 * allowed to run for 100 ms, when the next global time frame
-	 * begins.
+	 * - thread(s) assigned to partition #2 shall be allowed to
+	 * run for 100 ms, when the next global time frame begins.
 	 *
-	 * - thread(s) assigned to partition #1 (tag B) shall be
-	 * allowed to run for 50 ms, after the previous time slot
-	 * ends.
+	 * - thread(s) assigned to partition #1 shall be allowed to
+	 * run for 50 ms, after partition #2 ends.
 	 *
-	 * - thread(s) assigned to partition #0 (tag A) shall be
-	 * allowed to run for 20 ms, after the previous time slot
-	 * ends.
+	 * - thread(s) assigned to partition #0 shall be allowed to
+	 * run for 20 ms, after partition #1 ends.
 	 *
-	 * - when the previous time slot ends, no TP thread shall be
-	 * allowed to run until the global time frame ends (special
-	 * setting of ptid == EVL_TP_IDLE), i.e. 230 ms.
+	 * - when partition #1 ends, no TP thread shall be allowed to
+	 * run for 230 ms (i.e. ptid == EVL_TP_IDLE), until the global
+	 * time frame is over.
 	 */
 
- 	/* Assign the TP schedule to CPU0. */
 	len = evl_tp_paramlen(NR_WINDOWS);
 	p = malloc(len);
 	if (p == NULL)
@@ -222,6 +218,7 @@ int main(int argc, char *argv[])
 	p->tp.windows[3].duration.tv_sec = 0;
 	p->tp.windows[3].duration.tv_nsec = 230000000;
 	p->tp.windows[3].ptid = EVL_TP_IDLE;
+ 	/* Assign the TP schedule to the test CPU. */
 	__Tcall_assert(ret, evl_control_sched(SCHED_TP, p, NULL, test_cpu));
 
 	/* Then query the settings back. */
