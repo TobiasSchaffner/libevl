@@ -23,6 +23,7 @@ test_programs = [
     'mapfd',
     'monitor-deadlock',
     'monitor-event',
+    'monitor-event-targeted',
     'monitor-flags',
     'monitor-pi',
     'monitor-pi-deadlock',
