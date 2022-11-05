@@ -66,8 +66,9 @@ int main(int argc, char *argv[])
 	 * us in-band and trigger the notification we expect about
 	 * having been demoted in the same move. We can only do that
 	 * via the internal interface, since evl_read_observable()
-	 * would use oob_read() instead. For the purpose of testing
-	 * only, you should you really not do that in your apps.
+	 * would use oob_read() instead. This is for the purpose of
+	 * testing only: you should definitely NOT do that in your
+	 * apps.
 	 */
 	__Tcall_errno_assert(ret, read(tfd, &_nf, sizeof(_nf)));
 	__Texpr_assert(_nf.tag == EVL_HMDIAG_SYSDEMOTE);
