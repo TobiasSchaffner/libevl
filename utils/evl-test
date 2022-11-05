@@ -72,13 +72,21 @@ fi
 
 for t in $test_list; do
     test \! -x $t && echo "$(basename $t): no such test" && exit 2
-    $t && echo "$(basename $t): OK" && continue
-    c=$?
-    if test $c = 42; then
-	echo "$(basename $t): no kernel support"
+    # Swap stdout<->stderr for the test, capturing stderr into $log.
+    log=$($t 3>&1 1>&2 2>&3)
+    status=$?
+    if test $status = 43; then
+	echo "$(basename $t): $log"
     else
-	echo "** $(basename $t): BROKEN"
-	test x$keep_going = xfalse && exit $c
+	test -n "$log" && echo "$log"
+	if test $status = 0; then
+	    echo "$(basename $t): OK"
+	elif test $status = 42; then
+	    echo "$(basename $t): no kernel support"
+	else
+	    echo "** $(basename $t): BROKEN"
+	    test x$keep_going = xfalse && exit $status
+	fi
     fi
 done
 

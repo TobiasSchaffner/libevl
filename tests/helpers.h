@@ -15,6 +15,7 @@
 #include <evl/proxy.h>
 
 #define EXIT_NO_SUPPORT  42
+#define EXIT_NO_STATUS   43
 
 #define ONE_BILLION	1000000000
 
@@ -30,6 +31,9 @@
 	evl_print_proxy(proxy_errfd, "%s:%d: FAILED: " __fmt "\n",	\
 			__FILE__, __LINE__, ##__args)
 #endif
+
+#define emit_info(__fmt, __args...)					\
+	evl_print_proxy(proxy_errfd, __fmt "\n", ##__args)
 
 static inline int abort_test(int status)
 {
