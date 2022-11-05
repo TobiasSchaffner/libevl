@@ -62,6 +62,7 @@ test_programs = [
     'proxy-poll',
     'sched-quota-accuracy',
     'sched-tp-accuracy',
+    'sched-tp-overrun',
     'sem-close-unblock',
     'sem-timedwait',
     'sem-wait',

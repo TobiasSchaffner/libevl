@@ -141,6 +141,9 @@ void timespec_add_ns(struct timespec *__restrict r,
 		const struct timespec *__restrict t,
 		long ns);
 
+long timespec_sub_ns(const struct timespec *__restrict r,
+		const struct timespec *__restrict t);
+
 int pick_test_cpu(int hint_cpu,
 		bool inband_test, bool *isolated);
 

@@ -73,6 +73,21 @@ void timespec_add_ns(struct timespec *__restrict r,
 	}
 }
 
+long timespec_sub_ns(const struct timespec *__restrict t1,
+		const struct timespec *__restrict t2)
+{
+	struct timespec r;
+
+	r.tv_sec = t1->tv_sec - t2->tv_sec;
+	r.tv_nsec = t1->tv_nsec - t2->tv_nsec;
+	if (r.tv_nsec < 0) {
+		r.tv_sec--;
+		r.tv_nsec += 1000000000;
+	}
+
+	return r.tv_sec * 1000000000 + r.tv_nsec;
+}
+
 static void parse_cpu_list(const char *path, cpu_set_t *cpuset)
 {
 	char *p, *range, *range_p = NULL, *id, *id_r;
