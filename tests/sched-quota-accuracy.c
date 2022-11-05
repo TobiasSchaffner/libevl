@@ -124,7 +124,7 @@ static void *quota_thread(void *arg)
 
 	set_thread_affinity();
 
-	loops = crunch_per_sec / 100; /* yield each 10 ms runtime */
+	loops = crunch_per_sec / 100; /* yield every 10 ms */
 	t->count = 0;
 
 	__Tcall_assert(t->efd, evl_attach_self("sched-quota-accuracy:%d.%d",
@@ -386,15 +386,12 @@ int main(int argc, char *argv[])
 
 	effective = run_quota(quota);
 
-	do_trace("CPU%d: %d thread%s: cap=%d%%, effective=%.1f%%",
-		test_cpu, nrthreads, nrthreads > 1 ? "s": "", quota, effective);
+	if (!verbose)	  /* Percentage of quota actually obtained. */
+		emit_info("%.1f%%", effective * 100.0 / (double)quota);
+	else
+		do_trace("CPU%d: %d thread%s: cap=%d%%, effective=%.1f%%",
+			test_cpu, nrthreads, nrthreads > 1 ?
+			"s": "", quota, effective);
 
-	/* Tolerate 1.5% variation, give or take. */
-	if (!getenv("EVL_IN_VM") && fabs(effective - (double)quota) > 1.5) {
-		do_trace("CPU%d: out of quota: %.1f%%",
-			test_cpu, effective - (double)quota);
-		return 2;
-	}
-
-	return 0;
+	return EXIT_NO_STATUS;
 }
