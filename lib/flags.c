@@ -253,10 +253,11 @@ int evl_post_flags(struct evl_flags *flg, int bits)
 	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	if (!val || is_polled(state)) {
 	slow_path:
-		if (__evl_get_current())
+		if (__evl_get_current() && !__evl_is_inband())
 			ret = oob_ioctl(flg->u.active.efd,
 					EVL_MONIOC_SIGNAL, &mask);
 		else
+			/* In-band threads may post flags directly. */
 			ret = ioctl(flg->u.active.efd,
 				EVL_MONIOC_SIGNAL, &mask);
 		return ret ? -errno : 0;
