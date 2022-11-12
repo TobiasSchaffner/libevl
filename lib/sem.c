@@ -225,7 +225,7 @@ int evl_put_sem(struct evl_sem *sem)
 	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	if (val < 0 || is_polled(state)) {
 	slow_path:
-		if (__evl_get_current())
+		if (__evl_get_current() && !__evl_is_inband())
 			ret = oob_ioctl(sem->u.active.efd,
 					EVL_MONIOC_SIGNAL, &sigval);
 		else
