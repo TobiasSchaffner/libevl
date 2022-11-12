@@ -24,6 +24,7 @@ test_programs = [
     'monitor-deadlock',
     'monitor-event',
     'monitor-event-targeted',
+    'monitor-event-untrack',
     'monitor-flags',
     'monitor-pi',
     'monitor-pi-deadlock',
