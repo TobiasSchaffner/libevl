@@ -16,7 +16,7 @@
 #define LOW_PRIO	1
 #define HIGH_PRIO	2
 
-#define NR_WINDOWS  4
+#define NR_WINDOWS	4
 
 #define do_trace(__fmt, __args...)				\
 	do {							\
@@ -41,8 +41,8 @@ static void usage(void)
 
 #define short_optlist "vc:"
 
-#define ALLOTTED_TIME	500000	/* ns */
-#define OVERRUN_TIME	(ALLOTTED_TIME + ALLOTTED_TIME / 2)
+#define ALLOTTED_TIME	1000000	/* ns */
+#define OVERRUN_TIME	(ALLOTTED_TIME + 200000)
 #define BREATHING_TIME	2000000	/* ns */
 
 static const struct option options[] = {
@@ -99,42 +99,38 @@ static void *tp_thread(void *arg)
 
 	__Tcall_assert(ret, evl_get_sem(&start_sem));
 
+	evl_read_clock(EVL_CLOCK_MONOTONIC, &start);
+
+	/*
+	 * Trigger an overrun condition by staying busy for longer
+	 * than the duration of our allotted time window.
+	 */
 	for (;;) {
-		evl_read_clock(EVL_CLOCK_MONOTONIC, &start);
-		/*
-		 * Trigger an overrun condition by staying busy for
-		 * longer than the duration of our allotted time
-		 * window.
-		 */
-		for (;;) {
-			evl_read_clock(EVL_CLOCK_MONOTONIC, &now);
-			if (timespec_sub_ns(&now, &start) > OVERRUN_TIME)
-				break;
-		}
-		/*
-		 * Now check whether we received the overrun event as
-		 * expected. Since non-blocking input is enabled, a
-		 * lack of notification would amount to an error
-		 * (EAGAIN).
-		 */
-		__Tcall_assert(ret, evl_read_observable(tfd, &nf, 1));
-		__Texpr_assert(ret == 1);
-		__Texpr_assert(nf.tag == EVL_HMDIAG_OVERRUN);
-		/*
-		 * threadA in partition #0 always (over)runs in window
-		 * #0, threadB in partition #1 in window #2. So we
-		 * expect the overrun window to be equal to two times
-		 * the partition number the current thread is assigned
-		 * to.
-		 */
-		__Texpr_assert(nf.event.val == part * 2);
-		/*
-		 * But we should receive only a single notification
-		 * per outer loop, right?
-		 */
-		__Fcall_assert(ret, evl_read_observable(tfd, &nf, 1));
-		__Texpr_assert(ret == -EAGAIN);
+		evl_read_clock(EVL_CLOCK_MONOTONIC, &now);
+		if (timespec_sub_ns(&now, &start) > OVERRUN_TIME)
+			break;
 	}
+
+	/*
+	 * Now check whether we received the overrun event as
+	 * expected. Since non-blocking input is enabled, a lack of
+	 * notification would amount to an error (EAGAIN).
+	 */
+	__Tcall_assert(ret, evl_read_observable(tfd, &nf, 1));
+	__Texpr_assert(ret == 1);
+	__Texpr_assert(nf.tag == EVL_HMDIAG_OVERRUN);
+
+	/*
+	 * threadA in partition #0 always (over)runs in window #0,
+	 * threadB in partition #1 in window #2. So we expect the
+	 * overrun window to be equal to two times the partition
+	 * number the current thread is assigned to.
+	 */
+	__Texpr_assert(nf.event.val == part * 2);
+
+	/* Check that a single notification was sent. */
+	__Fcall_assert(ret, evl_read_observable(tfd, &nf, 1));
+	__Texpr_assert(ret == -EAGAIN);
 
 	return NULL;
 }
@@ -236,11 +232,6 @@ int main(int argc, char *argv[])
 	__Tcall_assert(ret, evl_put_sem(&start_sem));
 	__Tcall_assert(ret, evl_put_sem(&start_sem));
 
-	do_trace("running for 3s");
-	sleep(3);	/* Run for a while. */
-
-	pthread_cancel(threadB);
-	pthread_cancel(threadA);
 	pthread_join(threadB, NULL);
 	pthread_join(threadA, NULL);
 
