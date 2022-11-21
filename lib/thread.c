@@ -140,7 +140,7 @@ fail:
 
 int evl_detach_thread(int flags)
 {
-	__u32 mode = T_WOSS;
+	__u32 mode = EVL_T_WOSS;
 	int ret;
 
 	 /* flags are unused so far and should be zero. */
@@ -151,7 +151,7 @@ int evl_detach_thread(int flags)
 		return -EPERM;
 
 	/*
-	 * Force T_WOSS off, there is no point in receiving SIGDEBUG
+	 * Force EVL_T_WOSS off, there is no point in receiving SIGDEBUG
 	 * as a result of calling ioctl() to detach from the core.
 	 */
 	oob_ioctl(__evl_current_efd, EVL_THRIOC_CLEAR_MODE, &mode);

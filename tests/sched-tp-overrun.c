@@ -85,10 +85,10 @@ static void *tp_thread(void *arg)
 	__Tcall_assert(ret, evl_subscribe(tfd, 16, 0));
 
 	/*
-	 * Enable Schedule Overrun (T_WOSO) notification via
+	 * Enable Schedule Overrun (EVL_T_WOSO) notification via
 	 * observable.
 	 */
-	__Tcall_assert(ret, evl_set_thread_mode(tfd, T_WOSO|T_HMOBS, NULL));
+	__Tcall_assert(ret, evl_set_thread_mode(tfd, EVL_T_WOSO|EVL_T_HMOBS, NULL));
 
 	__Tcall_assert(ret, evl_put_sem(&sync_sem));
 

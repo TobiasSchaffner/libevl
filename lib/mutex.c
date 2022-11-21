@@ -219,7 +219,7 @@ static int try_lock(struct evl_mutex *mutex)
 	 * through the slow syscall path.
 	 */
 	mode = __evl_get_current_mode();
-	if (!(mode & (T_INBAND|T_WEAK|T_WOLI))) {
+	if (!(mode & (EVL_T_INBAND|EVL_T_WEAK|EVL_T_WOLI))) {
 		if (mutex->u.active.protocol == EVL_GATE_PP) {
 			u_window = __evl_get_current_window();
 			/*
@@ -333,7 +333,7 @@ int evl_unlock_mutex(struct evl_mutex *mutex)
 		goto slow_path;
 
 	mode = __evl_get_current_mode();
-	if (mode & (T_WEAK|T_WOLI))
+	if (mode & (EVL_T_WEAK|EVL_T_WOLI))
 		goto slow_path;
 
 	if (evl_fast_unlock_mutex(&gst->u.gate.owner, current)) {

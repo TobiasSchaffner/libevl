@@ -61,7 +61,7 @@ static void *event_receiver(void *arg)
 	 * LKSLEEP condition via SIGDEBUG, despite attempts to sleep
 	 * on the event while holding the mutex guarding it.
 	 */
-	__Tcall_assert(ret, evl_set_thread_mode(receiverfd, T_WOLI|T_HMSIG, NULL));
+	__Tcall_assert(ret, evl_set_thread_mode(receiverfd, EVL_T_WOLI|EVL_T_HMSIG, NULL));
 #endif
 	__Tcall_assert(ret, evl_get_sem(&p->start));
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &now);

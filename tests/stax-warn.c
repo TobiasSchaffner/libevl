@@ -40,7 +40,7 @@ static void *test_thread(void *arg)
 	int tfd, ret;
 
 	__Tcall_assert(tfd, evl_attach_self("stax-warn-test:%d", getpid()));
-	__Tcall_assert(ret, evl_set_thread_mode(tfd, T_WOSX, NULL));
+	__Tcall_assert(ret, evl_set_thread_mode(tfd, EVL_T_WOSX, NULL));
 
 	/*
 	 * In-band main() currently holds the stax, we should get

@@ -412,9 +412,9 @@ static void *timer_responder(void *arg)
 	if (efd < 0)
 		error(1, -efd, "evl_attach_self() failed");
 
-	ret = evl_set_thread_mode(efd, T_WOSS, NULL);
+	ret = evl_set_thread_mode(efd, EVL_T_WOSS, NULL);
 	if (ret)
-		error(1, -ret, "evl_set_thread_mode(T_WOSS) failed");
+		error(1, -ret, "evl_set_thread_mode(EVL_T_WOSS) failed");
 
 	for (;;) {
 		ret = oob_ioctl(latmus_fd, EVL_LATIOC_PULSE, &timestamp);
@@ -555,9 +555,9 @@ static void *gpio_responder_thread(void *arg)
 		if (efd < 0)
 			error(1, -efd, "evl_attach_self() failed");
 
-		ret = evl_set_thread_mode(efd, T_WOSS, NULL);
+		ret = evl_set_thread_mode(efd, EVL_T_WOSS, NULL);
 		if (ret)
-			error(1, -ret, "evl_set_thread_mode(T_WOSS) failed");
+			error(1, -ret, "evl_set_thread_mode(EVL_T_WOSS) failed");
 
 		do_ioctl = oob_ioctl;
 		do_read = oob_read;

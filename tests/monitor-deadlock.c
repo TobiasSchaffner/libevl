@@ -36,7 +36,7 @@ static void *deadlocking_thread(void *arg)
 	 * Disable WOLI in case CONFIG_EVL_DEBUG_WOLI is set, as we
 	 * are about to sleep while holding a mutex.
 	 */
-	__Tcall_assert(ret, evl_clear_thread_mode(tfd, T_WOLI, NULL));
+	__Tcall_assert(ret, evl_clear_thread_mode(tfd, EVL_T_WOLI, NULL));
 	__Tcall_assert(ret, evl_lock_mutex(&p->lock_b));
 	__Tcall_assert(ret, evl_put_sem(&p->sync));
 	__Tcall_assert(ret, evl_get_sem(&p->start));
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	 * Disable WOLI in case CONFIG_EVL_DEBUG_WOLI is set, as we
 	 * are about to sleep while holding a mutex.
 	 */
-	__Tcall_assert(ret, evl_clear_thread_mode(tfd, T_WOLI, NULL));
+	__Tcall_assert(ret, evl_clear_thread_mode(tfd, EVL_T_WOLI, NULL));
 	__Tcall_assert(ret, evl_lock_mutex(&c.lock_a));
 	__Fcall_assert(ret, evl_lock_mutex(&c.lock_a)); /* stupid deadlock */
 	__Texpr_assert(ret == -EDEADLK);

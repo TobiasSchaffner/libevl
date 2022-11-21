@@ -396,7 +396,7 @@ static struct display_handler pid_handler = {
 
 static void display_name(struct thread_info *ti)
 {
-	if (ti->state & T_USER)
+	if (ti->state & EVL_T_USER)
 		printf("%s", ti->name);
 	else
 		printf("[%s]", ti->name);
@@ -524,17 +524,17 @@ static char *format_state(struct thread_info *ti, char *buf)
 		c = labels[flag];
 
 		switch (1 << flag) {
-		case T_DELAY:
+		case EVL_T_DELAY:
 			/*
 			 * Only report genuine delays here, not timed
 			 * waits for resources.
 			 */
-			if (ti->state & T_PEND)
+			if (ti->state & EVL_T_PEND)
 				continue;
 			break;
-		case T_PEND:
+		case EVL_T_PEND:
 			/* Report timed waits with lowercase symbol. */
-			if (ti->state & T_DELAY)
+			if (ti->state & EVL_T_DELAY)
 				c |= 0x20;
 			break;
 		default:

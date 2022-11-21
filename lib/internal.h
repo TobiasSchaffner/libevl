@@ -93,7 +93,7 @@ struct evl_user_window *__evl_current_window;
 static inline int __evl_get_current_mode(void)
 {
 	return __evl_current_window ?
-		__evl_current_window->state : T_INBAND;
+		__evl_current_window->state : EVL_T_INBAND;
 }
 
 static inline fundle_t __evl_get_current(void)
@@ -109,7 +109,7 @@ __evl_get_current_window(void)
 
 static inline bool __evl_is_inband(void)
 {
-	return !!(__evl_get_current_mode() & T_INBAND);
+	return !!(__evl_get_current_mode() & EVL_T_INBAND);
 }
 
 #define __evl_conforming_io(__efd, __call, __args...)		\

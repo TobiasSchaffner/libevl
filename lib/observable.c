@@ -45,7 +45,7 @@ static bool wants_oob_io(void)
 	if (__evl_current == EVL_NO_HANDLE)
 		return false;
 
-	return !(__evl_get_current_mode() & T_WEAK);
+	return !(__evl_get_current_mode() & EVL_T_WEAK);
 }
 
 int evl_update_observable(int ofd, const struct evl_notice *ntc, int nr)

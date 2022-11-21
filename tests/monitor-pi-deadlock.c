@@ -47,7 +47,7 @@ static void *thread_c(void *arg)
 	 * Disable WOLI in case CONFIG_EVL_DEBUG_WOLI is set, as we
 	 * are about to sleep while holding a mutex.
 	 */
-	__Tcall_assert(ret, evl_clear_thread_mode(tfd, T_WOLI, NULL));
+	__Tcall_assert(ret, evl_clear_thread_mode(tfd, EVL_T_WOLI, NULL));
 	__Tcall_assert(ret, evl_lock_mutex(&p->lock_c));
 	__Tcall_assert(ret, evl_put_sem(&p->sync));
 
@@ -71,7 +71,7 @@ static void *thread_b(void *arg)
 	int ret, tfd;
 
 	__Tcall_assert(tfd, evl_attach_self("monitor-pi-dlk-B:%d", getpid()));
-	__Tcall_assert(ret, evl_clear_thread_mode(tfd, T_WOLI, NULL));
+	__Tcall_assert(ret, evl_clear_thread_mode(tfd, EVL_T_WOLI, NULL));
 	__Tcall_assert(ret, evl_lock_mutex(&p->lock_b));
 	__Tcall_assert(ret, evl_put_sem(&p->sync));
 
@@ -97,7 +97,7 @@ static void *thread_a(void *arg)
 	int ret, tfd;
 
 	__Tcall_assert(tfd, evl_attach_self("monitor-pi-dlk-A:%d", getpid()));
-	__Tcall_assert(ret, evl_clear_thread_mode(tfd, T_WOLI, NULL));
+	__Tcall_assert(ret, evl_clear_thread_mode(tfd, EVL_T_WOLI, NULL));
 	__Tcall_assert(ret, evl_lock_mutex(&p->lock_a));
 	__Tcall_assert(ret, evl_put_sem(&p->sync));
 
