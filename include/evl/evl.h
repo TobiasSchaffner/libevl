@@ -19,10 +19,15 @@
 #include <evl/xbuf.h>
 #include <evl/poll.h>
 #include <evl/proxy.h>
+#include <uapi/evl/control.h>
 
 #define __EVL__  23	/* API version */
 
-#define EVL_ABI_PREREQ  30
+#define EVL_ABI_PREREQ  31
+
+#if EVL_ABI_LEVEL < EVL_ABI_PREREQ
+#error EVL kernel uapi is too old
+#endif
 
 struct evl_version {
 	int api_level;	/* libevl.so: __EVL__ */
