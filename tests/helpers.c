@@ -15,6 +15,7 @@
 #include <evl/thread.h>
 #include "helpers.h"
 
+#define ONLINE_CPU_LIST	  "/sys/devices/system/cpu/online"
 #define ISOLATED_CPU_LIST "/sys/devices/system/cpu/isolated"
 #define OOB_CPU_LIST	  "/sys/devices/virtual/evl/control/cpus"
 
@@ -129,13 +130,25 @@ out:
 
 int pick_test_cpu(int hint_cpu, bool inband_test, bool *isolated)
 {
-	cpu_set_t isolated_cpus, oob_cpus, best_cpus;
+	cpu_set_t online_cpus, isolated_cpus, oob_cpus, best_cpus;
 	int cpu;
 
+	parse_cpu_list(ONLINE_CPU_LIST, &online_cpus);
 	parse_cpu_list(ISOLATED_CPU_LIST, &isolated_cpus);
 	parse_cpu_list(OOB_CPU_LIST, &oob_cpus);
 
 	if (hint_cpu >= 0) {
+		/*
+		 * Allow progress in the online CPU range if some hint
+		 * was given.
+		 */
+		cpu = hint_cpu;
+		do {
+			if (CPU_ISSET(cpu, &online_cpus))
+				break;
+		} while (++cpu < CPU_SETSIZE);
+		hint_cpu = cpu;
+
 		/* The hint is not oob-capable, pick a better one. */
 		if (!inband_test && !CPU_ISSET(hint_cpu, &oob_cpus))
 			goto pick_oob;

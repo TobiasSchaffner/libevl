@@ -22,6 +22,7 @@ test_programs = [
     'heap-torture',
     'mapfd',
     'monitor-deadlock',
+    'monitor-deboost-stress',
     'monitor-event',
     'monitor-event-targeted',
     'monitor-event-untrack',
