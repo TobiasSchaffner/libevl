@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <sched.h>
 #include <evl/syscall.h>
+#include <evl/compat.h>
 #include <uapi/evl/signal.h>
 #include <uapi/evl/thread.h>
 #include <uapi/evl/sched.h>
