@@ -67,11 +67,20 @@ static void *flags_receiver(void *arg)
 
 	__Tcall_assert(ret, evl_put_sem(&p->sem));
 
-	/* Sender should send 0x76767676 in a moment. */
+	/* Sender should send 0x76767676. */
 	if (!__Tcall(ret, evl_wait_flags(&p->flags, &bits)))
 		goto fail;
 
 	if (!__Texpr(bits == 0x76767676))
+		goto fail;
+
+	__Tcall_assert(ret, evl_put_sem(&p->sem));
+
+	/* We should receive 0x65656565, which we consume in two reads. */
+	if (!__Tcall(ret, evl_wait_exact_flags(&p->flags, 0x60606060)))
+		goto fail;
+
+	if (!__Tcall(ret, evl_wait_exact_flags(&p->flags, 0x05050505)))
 		goto fail;
 
 	__Tcall_assert(ret, evl_put_sem(&p->sem));
@@ -117,6 +126,8 @@ int main(int argc, char *argv[])
 	__Tcall_assert(ret, evl_get_sem(&c.sem));
 	__Tcall_assert(ret, evl_usleep(1000));
 	__Tcall_assert(ret, evl_post_flags(&c.flags, 0x76767676));
+	__Tcall_assert(ret, evl_get_sem(&c.sem));
+	__Tcall_assert(ret, evl_post_flags(&c.flags, 0x65656565));
 	__Tcall_assert(ret, evl_get_sem(&c.sem));
 	__Texpr_assert(pthread_join(receiver, &status) == 0);
 	__Texpr_assert(status == NULL);

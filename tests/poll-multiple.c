@@ -145,7 +145,8 @@ int main(int argc, char *argv[])
 			} else if ((int)pollset[m].fd == c[0].efd) {
 				__Tcall_assert(ret, evl_get_sem(&c[0].sem));
 			} else if ((int)pollset[m].fd == c[1].efd) {
-				__Tcall_assert(ret, evl_wait_flags(&c[1].flags, &bits));
+				__Tcall_assert(ret, evl_wait_flags(&c[1].flags,
+							&bits));
 			}
 		}
 	}

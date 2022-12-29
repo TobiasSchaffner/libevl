@@ -63,18 +63,40 @@ int evl_open_flags(struct evl_flags *flg,
 
 int evl_close_flags(struct evl_flags *flg);
 
-int evl_wait_flags(struct evl_flags *flg,
-		int *r_bits);
+int evl_timedwait_some_flags(struct evl_flags *flg, int bits,
+			const struct timespec *timeout,
+			int *r_bits);
+
+int evl_timedwait_exact_flags(struct evl_flags *flg, int bits,
+			const struct timespec *timeout);
 
 int evl_timedwait_flags(struct evl_flags *flg,
 			const struct timespec *timeout,
 			int *r_bits);
 
-int evl_post_flags(struct evl_flags *flg,
-		int bits);
+int evl_wait_some_flags(struct evl_flags *flg,
+			int bits, int *r_bits);
+
+int evl_wait_exact_flags(struct evl_flags *flg,
+			int bits);
+
+int evl_wait_flags(struct evl_flags *flg,
+		int *r_bits);
+
+int evl_trywait_some_flags(struct evl_flags *flg,
+			int bits, int *r_bits);
+
+int evl_trywait_exact_flags(struct evl_flags *flg,
+			int bits);
 
 int evl_trywait_flags(struct evl_flags *flg,
 		int *r_bits);
+
+int evl_post_flags(struct evl_flags *flg,
+		int bits);
+
+int evl_broadcast_flags(struct evl_flags *flg,
+			int bits);
 
 int evl_peek_flags(struct evl_flags *flg,
 		int *r_bits);

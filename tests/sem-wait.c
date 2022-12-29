@@ -17,7 +17,7 @@ struct test_context {
 	struct evl_sem sem;
 };
 
-static void *sem_contend(void *arg)
+static void *sem_poster(void *arg)
 {
 	struct test_context *p = arg;
 	int ret, tfd;
@@ -31,7 +31,7 @@ static void *sem_contend(void *arg)
 int main(int argc, char *argv[])
 {
 	struct test_context c;
-	pthread_t contender;
+	pthread_t poster;
 	int tfd, sfd, ret;
 	char *name;
 
@@ -39,10 +39,10 @@ int main(int argc, char *argv[])
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
 	__Tcall_assert(sfd, evl_new_sem(&c.sem, name));
-	new_thread(&contender, SCHED_FIFO, 1, sem_contend, &c);
+	new_thread(&poster, SCHED_FIFO, 1, sem_poster, &c);
 
 	__Tcall_assert(ret, evl_get_sem(&c.sem));
-	pthread_join(contender, NULL);
+	pthread_join(poster, NULL);
 
 	evl_close_sem(&c.sem);
 

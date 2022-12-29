@@ -70,6 +70,8 @@ int evl_timedget_sem(struct evl_sem *sem,
 
 int evl_put_sem(struct evl_sem *sem);
 
+int evl_flush_sem(struct evl_sem *sem);
+
 int evl_tryget_sem(struct evl_sem *sem);
 
 int evl_peek_sem(struct evl_sem *sem,

@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 		for (m = 0; m < nr; m++) {
 			p = pollset[m].pollval.ptr;
 			__Tcall_assert(ret,
-				evl_wait_flags(&p->flags, &bits));
+			       evl_wait_flags(&p->flags, &bits));
 		}
 	}
 

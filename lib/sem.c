@@ -250,6 +250,23 @@ int evl_put_sem(struct evl_sem *sem)
 	return 0;
 }
 
+int evl_flush_sem(struct evl_sem *sem)
+{
+	__s32 sigval = 1;
+	int ret;
+
+	ret = check_sanity(sem);
+	if (ret)
+		return ret;
+
+	if (__evl_get_current() && !__evl_is_inband())
+		ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_BROADCAST, &sigval);
+	else
+		ret = ioctl(sem->u.active.efd, EVL_MONIOC_BROADCAST, &sigval);
+
+	return ret ? -errno : 0;
+}
+
 int evl_peek_sem(struct evl_sem *sem, int *r_val)
 {
 	if (sem->magic != __SEM_ACTIVE_MAGIC)

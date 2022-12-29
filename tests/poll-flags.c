@@ -14,8 +14,6 @@
 #include <evl/poll.h>
 #include "helpers.h"
 
-#define NR_RECEIVERS  1
-
 #define LOW_PRIO   1
 #define HIGH_PRIO  2
 
@@ -23,20 +21,14 @@ static int pollfd_in, pollfd_out, ffd;
 
 static struct evl_flags flags;
 
-struct test_context {
-	int serial;
-};
-
 static void *flags_poller(void *arg)
 {
 	struct evl_poll_event pollset;
-	struct test_context *p = arg;
 	struct timespec now, timeout;
 	unsigned int bits;
 	int ret, tfd;
 
-	__Tcall_assert(tfd, evl_attach_self("monitor-flags-poller:%d.%d",
-			getpid(), p->serial));
+	__Tcall_assert(tfd, evl_attach_self("monitor-flags-poller:%d", getpid()));
 
 	do {
 		__Tcall_assert(ret, evl_poll(pollfd_in, &pollset, 1));
@@ -53,11 +45,10 @@ static void *flags_poller(void *arg)
 
 int main(int argc, char *argv[])
 {
-	struct test_context c[NR_RECEIVERS];
-	pthread_t pollers[NR_RECEIVERS];
 	struct evl_poll_event pollset;
 	struct sched_param param;
 	void *status = NULL;
+	pthread_t poller;
 	int tfd, ret, n;
 	char *name;
 
@@ -76,10 +67,7 @@ int main(int argc, char *argv[])
 	__Tcall_assert(pollfd_out, evl_new_poll());
 	__Tcall_assert(ret, evl_add_pollfd(pollfd_out, ffd, POLLOUT, evl_nil));
 
-	for (n = 0; n < NR_RECEIVERS; n++) {
-		c[n].serial = n;
-		new_thread(pollers + n, SCHED_FIFO, LOW_PRIO, flags_poller, c + n);
-	}
+	new_thread(&poller, SCHED_FIFO, LOW_PRIO, flags_poller, NULL);
 
 	for (n = 1; n != 0; n <<= 1) {
 		/* Wait for the flag group to be clear. */
@@ -91,11 +79,8 @@ int main(int argc, char *argv[])
 		__Tcall_assert(ret, evl_post_flags(&flags, n));
 	}
 
-	for (n = 0; n < NR_RECEIVERS; n++) {
-		__Texpr_assert(pthread_join(pollers[n], &status) == 0);
-		__Texpr_assert(status == NULL);
-	}
-
+	__Texpr_assert(pthread_join(poller, &status) == 0);
+	__Texpr_assert(status == NULL);
 	__Tcall_assert(ret, evl_close_flags(&flags));
 
 	return 0;

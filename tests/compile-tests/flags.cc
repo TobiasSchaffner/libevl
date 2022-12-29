@@ -21,11 +21,18 @@ int main(int argc, char *argv[])
 	evl_open_flags(&dynflags, "dynamic-flags");
 	evl_close_flags(&dynflags);
 	evl_wait_flags(&flags, &bits);
+	evl_wait_some_flags(&flags, -1, &bits);
+	evl_wait_exact_flags(&flags, -1);
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &timeout);
 	evl_timedwait_flags(&flags, &timeout, &bits);
+	evl_timedwait_some_flags(&flags, -1, &timeout, &bits);
+	evl_timedwait_exact_flags(&flags, -1, &timeout);
 	evl_trywait_flags(&flags, &bits);
+	evl_trywait_some_flags(&flags, -1, &bits);
+	evl_trywait_exact_flags(&flags, -1);
 	evl_peek_flags(&flags, &bits);
 	evl_post_flags(&flags, bits);
+	evl_broadcast_flags(&flags, bits);
 
 	return 0;
 }

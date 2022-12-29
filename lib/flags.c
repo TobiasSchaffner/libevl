@@ -140,30 +140,11 @@ static int check_sanity(struct evl_flags *flg)
 	return flg->magic != __FLAGS_ACTIVE_MAGIC ? -EINVAL : 0;
 }
 
-static int try_wait(struct evl_monitor_state *state)
+static int do_timedwait_flags(struct evl_flags *flg,
+			int bits, bool exact_match,
+			const struct timespec *timeout,
+			int *r_bits)
 {
-	__s32 val;
-
-	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
-	do {
-		if (!val)
-			return 0;
-	} while (!atomic_compare_exchange_weak_explicit(
-			&state->u.event.value, &val, 0,
-			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE));
-
-	return val;
-}
-
-static inline bool is_polled(struct evl_monitor_state *state)
-{
-	return !!atomic_load(&state->u.event.pollrefs);
-}
-
-int evl_timedwait_flags(struct evl_flags *flg,
-			const struct timespec *timeout,	int *r_bits)
-{
-	struct evl_monitor_state *state;
 	struct evl_monitor_waitreq req;
 	struct __evl_timespec kts;
 	fundle_t current;
@@ -177,61 +158,120 @@ int evl_timedwait_flags(struct evl_flags *flg,
 	if (ret)
 		return ret;
 
-	state = flg->u.active.state;
-	if (!is_polled(state)) {
-		ret = try_wait(state);
-		if (ret) {
-			*r_bits = ret;
-			return 0;
-		}
-	}
-
 	req.gatefd = -1;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout, kts);
 	req.status = -EINVAL;
-	req.value = 0;
+	req.value = bits;
 
-	ret = oob_ioctl(flg->u.active.efd, EVL_MONIOC_WAIT, &req);
+	ret = oob_ioctl(flg->u.active.efd,
+			exact_match ? EVL_MONIOC_WAIT_EXACT :
+			EVL_MONIOC_WAIT, &req);
 	if (ret)
 		return -errno;
 
 	if (req.status)
 		return req.status;
 
-	*r_bits = req.value;
+	if (r_bits)
+		*r_bits = req.value;
 
 	return 0;
 }
 
-int evl_wait_flags(struct evl_flags *flg, int *r_bits)
+int evl_timedwait_some_flags(struct evl_flags *flg,
+			int bits, const struct timespec *timeout,
+			int *r_bits)
+{
+	return do_timedwait_flags(flg, bits, false, timeout, r_bits);
+}
+
+int evl_timedwait_exact_flags(struct evl_flags *flg, int bits,
+			const struct timespec *timeout)
+{
+	return do_timedwait_flags(flg, bits, true, timeout, NULL);
+}
+
+int evl_timedwait_flags(struct evl_flags *flg,
+			const struct timespec *timeout,
+			int *r_bits)
+{
+	return evl_timedwait_some_flags(flg, -1, timeout, r_bits);
+}
+
+int evl_wait_some_flags(struct evl_flags *flg,
+			int bits, int *r_bits)
 {
 	struct timespec timeout = { .tv_sec = 0, .tv_nsec = 0 };
 
-	return evl_timedwait_flags(flg, &timeout, r_bits);
+	return evl_timedwait_some_flags(flg, bits, &timeout, r_bits);
 }
 
-int evl_trywait_flags(struct evl_flags *flg, int *r_bits)
+int evl_wait_exact_flags(struct evl_flags *flg,	int bits)
 {
-	int ret;
+	struct timespec timeout = { .tv_sec = 0, .tv_nsec = 0 };
+
+	return evl_timedwait_exact_flags(flg, bits, &timeout);
+}
+
+int evl_wait_flags(struct evl_flags *flg,
+		int *r_bits)
+{
+	return evl_wait_some_flags(flg, -1, r_bits);
+}
+
+static int do_trywait_flags(struct evl_flags *flg,
+		int bits, bool exact_match,
+		int *r_bits)
+{
+	struct evl_monitor_trywaitreq req;
+	int ret, cmd;
 
 	ret = check_sanity(flg);
 	if (ret)
 		return ret;
 
-	ret = try_wait(flg->u.active.state);
-	if (!ret)
-		return -EAGAIN;
+	req.value = bits;
+	cmd = exact_match ? EVL_MONIOC_TRYWAIT_EXACT :
+		EVL_MONIOC_TRYWAIT;
 
-	*r_bits = ret;
+	/*
+	 * In-band threads may trywait flags directly, no need to
+	 * trigger a stage switch since we won't sleep.
+	 */
+	if (__evl_get_current() && !__evl_is_inband())
+		ret = oob_ioctl(flg->u.active.efd, cmd, &req);
+	else
+		ret = ioctl(flg->u.active.efd, cmd, &req);
+	if (ret)
+		return -errno;
+
+	if (r_bits)
+		*r_bits = req.value;
 
 	return 0;
 }
 
-int evl_post_flags(struct evl_flags *flg, int bits)
+int evl_trywait_some_flags(struct evl_flags *flg,
+			int bits, int *r_bits)
 {
-	struct evl_monitor_state *state;
-	__s32 val, mask = bits;
-	int ret;
+	return do_trywait_flags(flg, bits, false, r_bits);
+}
+
+int evl_trywait_exact_flags(struct evl_flags *flg, int bits)
+{
+	return do_trywait_flags(flg, bits, true, NULL);
+}
+
+int evl_trywait_flags(struct evl_flags *flg,
+		int *r_bits)
+{
+	return evl_trywait_some_flags(flg, -1, r_bits);
+}
+
+static int do_post_flags(struct evl_flags *flg, int bits, bool bcast)
+{
+	__s32 mask = bits;
+	int ret, cmd;
 
 	ret = check_sanity(flg);
 	if (ret)
@@ -240,51 +280,25 @@ int evl_post_flags(struct evl_flags *flg, int bits)
 	if (!bits)
 		return -EINVAL;
 
-	/*
-	 * Unlike with gated event, we have no raceless way to detect
-	 * that somebody is waiting on the flag group from userland,
-	 * so we do a kernel entry each time a zero->non-zero
-	 * transition is observed for the value. Fortunately, having
-	 * some thread(s) already waiting for a flag to be posted is
-	 * the most likely situation, so such entry will be required
-	 * in most cases anyway.
-	 */
-	state = flg->u.active.state;
-	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
-	if (!val || is_polled(state)) {
-	slow_path:
-		if (__evl_get_current() && !__evl_is_inband())
-			ret = oob_ioctl(flg->u.active.efd,
-					EVL_MONIOC_SIGNAL, &mask);
-		else
-			/* In-band threads may post flags directly. */
-			ret = ioctl(flg->u.active.efd,
-				EVL_MONIOC_SIGNAL, &mask);
-		return ret ? -errno : 0;
-	}
+	cmd = bcast ? EVL_MONIOC_BROADCAST : EVL_MONIOC_SIGNAL;
 
-	while (!atomic_compare_exchange_weak_explicit(
-			&state->u.event.value, &val, val | bits,
-			__ATOMIC_RELEASE, __ATOMIC_ACQUIRE)) {
-		if (!val)
-			goto slow_path;
-	}
+	/* See trywait(). */
+	if (__evl_get_current() && !__evl_is_inband())
+		ret = oob_ioctl(flg->u.active.efd, cmd, &mask);
+	else
+		ret = ioctl(flg->u.active.efd, cmd, &mask);
 
-	/*
-	 * We successfully updated the event value. If that event is
-	 * currently polled, do a kernel entry to force a check for
-	 * pending wakeups. Conversely, waiters on the kernel side
-	 * first raised the polled state before checking for polled
-	 * events then blocking if need be.  We might have spurious
-	 * calls below, but these would be rare, fast and innocuous
-	 * since they would not change the event value.
-	 */
-	if (is_polled(state)) {
-		mask = 0;
-		goto slow_path;
-	}
+	return ret ? -errno : 0;
+}
 
-	return 0;
+int evl_post_flags(struct evl_flags *flg, int bits)
+{
+	return do_post_flags(flg, bits, false);
+}
+
+int evl_broadcast_flags(struct evl_flags *flg, int bits)
+{
+	return do_post_flags(flg, bits, true);
 }
 
 int evl_peek_flags(struct evl_flags *flg, int *r_bits)
