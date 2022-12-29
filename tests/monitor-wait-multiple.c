@@ -46,13 +46,11 @@ static void *event_receiver(void *arg)
 	__Tcall_assert(ret, evl_get_sem(&p->start));
 	__Tcall_assert(ret, evl_lock_mutex(&p->lock));
 
-#ifndef __ESHI__
 	if (a->serial > 1) {
 		__Tcall_assert(ret, evl_lock_mutex(&p->other_lock));
 		__Texpr_assert(evl_wait_event(&p->event, &p->other_lock) == -EBADFD);
 		__Tcall_assert(ret, evl_unlock_mutex(&p->other_lock));
 	}
-#endif
 
 	while (p->condition != 1)
 		__Tcall_assert(ret, evl_wait_event(&p->event, &p->lock));

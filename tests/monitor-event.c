@@ -49,7 +49,7 @@ static void *event_receiver(void *arg)
 	int ret;
 
 	__Tcall_assert(receiverfd, evl_attach_self("monitor-event-receiver:%d", getpid()));
-#ifndef __ESHI__
+
 	/* Install a handler for a signal we don't want to receive. */
 	sigemptyset(&sa.sa_mask);
 	sa.sa_sigaction = sigdebug_handler;
@@ -62,7 +62,6 @@ static void *event_receiver(void *arg)
 	 * on the event while holding the mutex guarding it.
 	 */
 	__Tcall_assert(ret, evl_set_thread_mode(receiverfd, EVL_T_WOLI|EVL_T_HMSIG, NULL));
-#endif
 	__Tcall_assert(ret, evl_get_sem(&p->start));
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &now);
 	timespec_add_ns(&timeout, &now, 200000000); /* 200ms */
@@ -164,11 +163,7 @@ int main(int argc, char *argv[])
 
 	__Tcall_assert(ret, evl_lock_mutex(&c.lock));
 	c.condition = 3;
-#ifdef __ESHI__
-	__Tcall_assert(ret, evl_signal_event(&c.event));
-#else
 	__Tcall_assert(ret, evl_signal_thread(&c.event, receiverfd));
-#endif
 	__Tcall_assert(ret, evl_unlock_mutex(&c.lock));
 
 	__Texpr_assert(pthread_join(receiver, &status) == 0);

@@ -44,30 +44,6 @@ install_headers(
     subdir : 'evl'
 )
 
-libeshi_headers = [
-    'evl/atomic.h',
-    'evl/heap.h',
-    'evl/list.h',
-    'eshi/evl/clock.h',
-    'eshi/evl/event.h',
-    'eshi/evl/evl.h',
-    'eshi/evl/flags.h',
-    'eshi/evl/mutex.h',
-    'eshi/evl/poll.h',
-    'eshi/evl/proxy.h',
-    'eshi/evl/sched.h',
-    'eshi/evl/sem.h',
-    'eshi/evl/syscall.h',
-    'eshi/evl/thread.h',
-    'eshi/evl/timer.h',
-    'eshi/evl/uapi.h',
-]
-
-install_headers(
-    libeshi_headers,
-    subdir : 'evl/eshi/evl'
-)
-
 uapi_install = find_program('copy-uapi.sh',
     dirs : libevl_scripts,
     required : true

@@ -5,10 +5,6 @@ libtest = static_library('test_helpers', 'helpers.c',
 )
 libtest_dep = declare_dependency(link_with : libtest)
 
-libtest_eshi = static_library('test_helpers_eshi', 'helpers.c',
-    include_directories : [ libeshi_incdir ],
-)
-libtest_eshi_dep = declare_dependency(link_with : libtest_eshi)
 
 test_programs = [
     'basic-xbuf',
@@ -107,31 +103,6 @@ foreach t : test_programs_with_atomic
     install : true,
     install_dir : 'tests',
     dependencies : [ libtest_dep, libevl_dep, atomic_dep ]
-)
-endforeach
-
-test_eshi_programs = [
-    'clock-timer-periodic',
-    'detach-self',
-    'heap-torture',
-    'monitor-event',
-    'monitor-wait-multiple',
-    'monitor-flags',
-    'monitor-trylock',
-    'poll-nested',
-    'poll-sem',
-    'proxy-eventfd',
-    'proxy-pipe',
-    'sem-timedwait',
-    'sem-wait',
-]
-
-foreach t : test_eshi_programs
-    x = executable(t + '.eshi', t + '.c',
-    c_args : '-D__ESHI__',
-    install : true,
-    install_dir : 'tests/eshi',
-    dependencies : [ libtest_eshi_dep, libeshi_dep ]
 )
 endforeach
 

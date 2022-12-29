@@ -51,14 +51,12 @@ static void *flags_receiver(void *arg)
 	if (!__Texpr(bits == 0x12121212))
 		goto fail;
 
-#ifndef __ESHI__
 	/* Flag group should be cleared. */
 	if (!__Tcall(ret, evl_peek_flags(&p->flags, &bits)))
 		goto fail;
 
 	if (!__Texpr(bits == 0))
 		goto fail;
-#endif
 
 	/* Trywait should fail with -EAGAIN. */
 	if (!__Fcall(ret, evl_trywait_flags(&p->flags, &bits)))
@@ -114,10 +112,8 @@ int main(int argc, char *argv[])
 	__Tcall_assert(ret, evl_put_sem(&c.start));
 	__Tcall_assert(ret, evl_get_sem(&c.sem));
 	__Tcall_assert(ret, evl_post_flags(&c.flags, 0x12121212));
-#ifndef __ESHI__
 	__Tcall_assert(ret, evl_peek_flags(&c.flags, &bits));
 	__Texpr_assert(bits == 0x12121212);
-#endif
 	__Tcall_assert(ret, evl_get_sem(&c.sem));
 	__Tcall_assert(ret, evl_usleep(1000));
 	__Tcall_assert(ret, evl_post_flags(&c.flags, 0x76767676));
