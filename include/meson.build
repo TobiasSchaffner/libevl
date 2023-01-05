@@ -20,6 +20,7 @@ libevl_incdirs = include_directories(
 libevl_headers = [
     'evl/atomic.h',
     'evl/clock.h',
+    'evl/compat.h',
     'evl/compiler.h',
     'evl/event.h',
     'evl/evl.h',
