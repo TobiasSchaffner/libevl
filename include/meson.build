@@ -35,6 +35,7 @@ libevl_headers = [
     'evl/sched.h',
     'evl/sem.h',
     'evl/syscall.h',
+    'evl/sys.h',
     'evl/thread.h',
     'evl/timer.h',
     'evl/xbuf.h',
@@ -43,6 +44,15 @@ libevl_headers = [
 install_headers(
     libevl_headers,
     subdir : 'evl'
+)
+
+libevl_net_headers = [
+    'evl/net/socket.h',
+]
+
+install_headers(
+    libevl_net_headers,
+    subdir : 'evl/net'
 )
 
 uapi_install = find_program('copy-uapi.sh',
