@@ -11,6 +11,7 @@ libevl_sources = [
     'parse_vdso.c',
     'poll.c',
     'proxy.c',
+    'rwlock.c',
     'sched.c',
     'sem.c',
     'socket.c',

@@ -21,7 +21,7 @@
 #include <evl/proxy.h>
 #include <uapi/evl/control.h>
 
-#define __EVL__  24	/* API version */
+#define __EVL__  25	/* API version */
 
 #define EVL_ABI_PREREQ  32
 

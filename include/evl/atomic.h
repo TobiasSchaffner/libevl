@@ -18,6 +18,7 @@
  * by the kernel ABI.
  */
 typedef _Atomic(__s32) atomic_t;
+typedef _Atomic(__u32) uatomic_t;
 
 /*
  * A couple of wrappers matching the kernel atomic API used in the
@@ -35,6 +36,16 @@ typedef _Atomic(__s32) atomic_t;
 		__exp;							\
 	})
 
+#define atomic_cmpxchg_weak(__ptr, __oldval, __newval)			\
+	({								\
+		typeof(__oldval) __exp = (__oldval);			\
+		typeof(__newval) __des = (__newval);			\
+		atomic_compare_exchange_weak_explicit(			\
+			__ptr, &__exp, __des,				\
+			__ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);		\
+		__exp;							\
+	})
+
 #else /* __cplusplus */
 
 /*
@@ -45,9 +56,11 @@ typedef _Atomic(__s32) atomic_t;
  * atomic types are still done right though.
  */
 typedef __s32 atomic_t;
+typedef __u32 uatomic_t;
 
 #define atomic_read(__ptr)				__c11_vs_cplusplus_atomic_mismatch()
 #define atomic_cmpxchg(__ptr, __oldval, __newval)	__c11_vs_cplusplus_atomic_mismatch()
+#define atomic_cmpxchg_weak(__ptr, __oldval, __newval)	__c11_vs_cplusplus_atomic_mismatch()
 
 #endif	/* __cplusplus */
 
