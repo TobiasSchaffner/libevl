@@ -10,6 +10,7 @@ cplus_test_programs = [
     'observable',
     'poll',
     'proxy',
+    'rwlock',
     'sched',
     'sem',
     'socket',
