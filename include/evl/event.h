@@ -33,7 +33,8 @@ struct evl_event {
 
 #define __EVENT_UNINIT_MAGIC	0x01770177
 
-#define EVL_EVENT_INITIALIZER(__name, __clockfd, __flags)  {	\
+#define EVL_EVENT_INITIALIZER(__name, __clockfd, __flags)  	\
+	(struct evl_event) {					\
 		.magic = __EVENT_UNINIT_MAGIC,			\
 		.u = {						\
 			.uninit = {				\
@@ -43,6 +44,11 @@ struct evl_event {
 			}					\
 		}						\
 	}
+
+#define DEFINE_EVL_EVENT(__name)				\
+  	struct evl_event __name =				\
+	  EVL_EVENT_INITIALIZER(#__name, EVL_CLOCK_MONOTONIC,	\
+				EVL_CLONE_PRIVATE)
 
 #define evl_new_event(__evt, __fmt, __args...)		\
 	evl_create_event(__evt, EVL_CLOCK_MONOTONIC,	\

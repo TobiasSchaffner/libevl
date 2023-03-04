@@ -34,17 +34,23 @@ struct evl_sem {
 
 #define __SEM_UNINIT_MAGIC	0xed15ed15
 
-#define EVL_SEM_INITIALIZER(__name, __clockfd, __initval, __flags)  { \
-		.magic = __SEM_UNINIT_MAGIC,			      \
-		.u = {					      	      \
-			.uninit = {				      \
-				.name = (__name),		      \
-				.clockfd = (__clockfd),		      \
-				.initval = (__initval),		      \
-				.flags = (__flags),		      \
-			}					      \
-		}						      \
+#define EVL_SEM_INITIALIZER(__name, __clockfd, __initval, __flags)	\
+	(struct evl_sem) {						\
+		.magic = __SEM_UNINIT_MAGIC,				\
+		.u = {							\
+			.uninit = {					\
+			.name = (__name),				\
+			.clockfd = (__clockfd),				\
+			.initval = (__initval),				\
+			.flags = (__flags),				\
+			}						\
+		}							\
 	}
+
+#define DEFINE_EVL_SEM(__name)					\
+  	struct evl_sem __name =					\
+	  EVL_SEM_INITIALIZER(#__name, EVL_CLOCK_MONOTONIC,	\
+			      0, EVL_CLONE_PRIVATE)
 
 #define evl_new_sem(__sem, __fmt, __args...)		 \
 	evl_create_sem(__sem, EVL_CLOCK_MONOTONIC, 0,	 \

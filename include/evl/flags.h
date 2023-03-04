@@ -34,7 +34,8 @@ struct evl_flags {
 
 #define __FLAGS_UNINIT_MAGIC	0xfebcfebc
 
-#define EVL_FLAGS_INITIALIZER(__name, __clockfd, __initval, __flags)  { \
+#define EVL_FLAGS_INITIALIZER(__name, __clockfd, __initval, __flags)	\
+	(struct evl_flags) {						\
 		.magic = __FLAGS_UNINIT_MAGIC,				\
 		.u = {							\
 			.uninit = {					\
@@ -45,6 +46,11 @@ struct evl_flags {
 			}						\
 		}							\
 	}
+
+#define DEFINE_EVL_FLAGS(__name)				\
+  	struct evl_flags __name =				\
+	  EVL_FLAGS_INITIALIZER(#__name, EVL_CLOCK_MONOTONIC,	\
+				0, EVL_CLONE_PRIVATE)
 
 #define evl_new_flags(__flg, __fmt, __args...)		    \
 	evl_create_flags(__flg, EVL_CLOCK_MONOTONIC, 0,	    \

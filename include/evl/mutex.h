@@ -40,7 +40,8 @@ struct evl_mutex {
 	} u;
 };
 
-#define EVL_MUTEX_INITIALIZER(__name, __clockfd, __ceiling, __flags)  { \
+#define EVL_MUTEX_INITIALIZER(__name, __clockfd, __ceiling, __flags)	\
+	(struct evl_mutex) {						\
 		.magic = __MUTEX_UNINIT_MAGIC,				\
 		.u = {							\
 			.uninit = {					\
@@ -52,6 +53,11 @@ struct evl_mutex {
 			}						\
 		}							\
 	}
+
+#define DEFINE_EVL_MUTEX(__name)					\
+  	struct evl_mutex __name =					\
+	  EVL_MUTEX_INITIALIZER(#__name, EVL_CLOCK_MONOTONIC,		\
+				0, EVL_MUTEX_NORMAL|EVL_CLONE_PRIVATE)
 
 #define evl_new_mutex(__mutex, __fmt, __args...)		\
 	evl_create_mutex(__mutex, EVL_CLOCK_MONOTONIC,		\

@@ -7,26 +7,25 @@
 #include <evl/clock.h>
 #include <evl/event.h>
 
-static struct evl_event event =
-	EVL_EVENT_INITIALIZER("static-event", EVL_CLOCK_MONOTONIC, 0);
+static DEFINE_EVL_EVENT(static_event);
 
 int main(int argc, char *argv[])
 {
-	struct evl_event dynevent;
+	struct evl_event dynamic_event;
 	struct timespec timeout;
 	struct evl_mutex mutex;
 
 	evl_new_mutex(&mutex, "mutex");
-	evl_new_event(&dynevent, "dynamic-event");
-	evl_create_event(&dynevent, CLOCK_MONOTONIC, 0, "dynamic-event");
-	evl_open_event(&dynevent, "dynamic-event");
-	evl_close_event(&dynevent);
-	evl_wait_event(&event, &mutex);
+	evl_new_event(&dynamic_event, "dynamic_event");
+	evl_create_event(&dynamic_event, CLOCK_MONOTONIC, 0, "dynamic_event");
+	evl_open_event(&dynamic_event, "dynamic_event");
+	evl_close_event(&dynamic_event);
+	evl_wait_event(&static_event, &mutex);
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &timeout);
-	evl_timedwait_event(&event, &mutex, &timeout);
-	evl_signal_event(&event);
-	evl_broadcast_event(&event);
-	evl_signal_thread(&event, -1);
+	evl_timedwait_event(&static_event, &mutex, &timeout);
+	evl_signal_event(&static_event);
+	evl_broadcast_event(&static_event);
+	evl_signal_thread(&static_event, -1);
 
 	return 0;
 }
