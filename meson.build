@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 project('libevl', [ 'c', 'cpp' ],
-  version : '0.43',
+  version : '0.44',
   license : 'MIT',
   meson_version : '>= 0.58.0',
   default_options : [ 'warning_level=3',
