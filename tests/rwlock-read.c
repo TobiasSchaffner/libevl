@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 	new_thread(&reader, SCHED_FIFO, LOW_PRIO, rwlock_reader, NULL);
 	__Tcall_assert(ret, evl_get_sem(&sem));
 	__Fcall_assert(ret, evl_trylock_write(&rwlock));
-	__Texpr(ret == -EBUSY);
+	__Texpr(ret == -EAGAIN);
 
 	__Texpr_assert(pthread_join(reader, &status) == 0);
 	__Fexpr_assert(status == NULL);

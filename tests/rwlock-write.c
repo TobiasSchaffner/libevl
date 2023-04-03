@@ -22,9 +22,9 @@ static void *rwlock_writer(void *arg)
 
 	/* We should fail for both read and write access. */
 	__Fcall_assert(ret, evl_trylock_read(&rwlock));
-	__Texpr_assert(ret == -EBUSY);
+	__Texpr_assert(ret == -EAGAIN);
 	__Fcall_assert(ret, evl_trylock_write(&rwlock));
-	__Texpr_assert(ret == -EBUSY);
+	__Texpr_assert(ret == -EAGAIN);
 
 	/* Wake up the main() thread in advance. */
 	__Tcall_assert(ret, evl_put_sem(&sem));
