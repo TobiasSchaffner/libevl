@@ -19,6 +19,7 @@
 #include <evl/xbuf.h>
 #include <evl/poll.h>
 #include <evl/proxy.h>
+#include <evl/rwlock.h>
 #include <uapi/evl/control.h>
 
 #define __EVL__  25	/* API version */
