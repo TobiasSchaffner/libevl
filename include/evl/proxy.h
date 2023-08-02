@@ -26,8 +26,11 @@ int evl_create_proxy(int targetfd, size_t bufsz,
 		size_t granularity, int flags,
 		const char *fmt, ...);
 
-ssize_t evl_send_proxy(int proxyfd,
+ssize_t evl_write_proxy(int proxyfd,
 		const void *buf, size_t count);
+
+ssize_t evl_read_proxy(int proxyfd,
+		void *buf, size_t count);
 
 ssize_t evl_vprint_proxy(int proxyfd,
 			const char *fmt, va_list ap);
@@ -37,8 +40,7 @@ ssize_t evl_print_proxy(int proxyfd,
 
 ssize_t evl_printf(const char *fmt, ...);
 
-extern int proxy_outfd,
-	proxy_errfd;
+extern int evl_outfd, evl_errfd;
 
 #ifdef __cplusplus
 }

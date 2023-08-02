@@ -19,7 +19,7 @@
 static __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
 char fmt_buf[1024];
 
-int proxy_outfd = -EBADF, proxy_errfd = -EBADF;
+int evl_outfd = -EBADF, evl_errfd = -EBADF;
 
 void __evl_setup_proxies(void)
 {
@@ -27,9 +27,9 @@ void __evl_setup_proxies(void)
 	 * This might fail if stdout/stderr are closed, just ignore if
 	 * so.
 	 */
-	proxy_outfd = evl_new_proxy(fileno(stdout), STDSTREAM_BUFSZ,
+	evl_outfd = evl_new_proxy(fileno(stdout), STDSTREAM_BUFSZ,
 		"stdout:%d", getpid());
-	proxy_errfd = evl_new_proxy(fileno(stderr), STDSTREAM_BUFSZ,
+	evl_errfd = evl_new_proxy(fileno(stderr), STDSTREAM_BUFSZ,
 		"stderr:%d", getpid());
 }
 
@@ -59,11 +59,20 @@ int evl_create_proxy(int targetfd, size_t bufsz, size_t granularity,
 	return efd;
 }
 
-ssize_t evl_send_proxy(int proxyfd, const void *buf, size_t count)
+ssize_t evl_write_proxy(int proxyfd, const void *buf, size_t count)
 {
 	ssize_t ret;
 
 	ret = __evl_conforming_io(proxyfd, write, buf, count);
+
+	return ret < 0 ? -errno : ret;
+}
+
+ssize_t evl_read_proxy(int proxyfd, void *buf, size_t count)
+{
+	ssize_t ret;
+
+	ret = __evl_conforming_io(proxyfd, read, buf, count);
 
 	return ret < 0 ? -errno : ret;
 }
@@ -88,7 +97,7 @@ ssize_t evl_vprint_proxy(int proxyfd, const char *fmt, va_list ap)
 			ret = -EBADFD;
 		}
 	} else {
-		ret = evl_send_proxy(proxyfd, fmt_buf, count);
+		ret = evl_write_proxy(proxyfd, fmt_buf, count);
 	}
 
 	return ret;
@@ -112,7 +121,7 @@ ssize_t evl_printf(const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	ret = evl_vprint_proxy(proxy_outfd, fmt, ap);
+	ret = evl_vprint_proxy(evl_outfd, fmt, ap);
 	va_end(ap);
 
 	return ret;
