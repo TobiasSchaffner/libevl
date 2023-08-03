@@ -203,9 +203,6 @@ int evl_switch_inband(void)
 	if (evl_is_inband())
 		return 0;
 
-	if (__evl_current == EVL_NO_HANDLE)
-		return -EPERM;
-
 	ret = ioctl(__evl_current_efd, EVL_THRIOC_SWITCH_INBAND);
 
 	return ret ? -errno : 0;
