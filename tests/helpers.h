@@ -22,12 +22,12 @@
 #define __stringify_1(x...)	#x
 #define __stringify(x...)	__stringify_1(x)
 
-#define warn_failed(__fmt, __args...)					\
-	evl_print_proxy(evl_errfd, "%s:%d: FAILED: " __fmt "\n",	\
+#define warn_failed(__fmt, __args...)			\
+	evl_eprintf("%s:%d: FAILED: " __fmt "\n",	\
 			__FILE__, __LINE__, ##__args)
 
-#define emit_info(__fmt, __args...)					\
-	evl_print_proxy(evl_errfd, __fmt "\n", ##__args)
+#define emit_info(__fmt, __args...)			\
+	evl_eprintf(__fmt "\n", ##__args)
 
 static inline int abort_test(int status)
 {

@@ -40,6 +40,8 @@ ssize_t evl_print_proxy(int proxyfd,
 
 ssize_t evl_printf(const char *fmt, ...);
 
+ssize_t evl_eprintf(const char *fmt, ...);
+
 extern int evl_outfd, evl_errfd;
 
 #ifdef __cplusplus

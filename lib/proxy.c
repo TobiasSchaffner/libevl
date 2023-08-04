@@ -126,3 +126,16 @@ ssize_t evl_printf(const char *fmt, ...)
 
 	return ret;
 }
+
+ssize_t evl_eprintf(const char *fmt, ...)
+{
+	ssize_t ret;
+	va_list ap;
+
+	va_start(ap, fmt);
+	ret = evl_vprint_proxy(evl_errfd, fmt, ap);
+	va_end(ap);
+
+	return ret;
+
+}
