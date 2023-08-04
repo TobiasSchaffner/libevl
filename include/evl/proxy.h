@@ -42,7 +42,9 @@ ssize_t evl_printf(const char *fmt, ...);
 
 ssize_t evl_eprintf(const char *fmt, ...);
 
-extern int evl_outfd, evl_errfd;
+int evl_stdout(void);
+
+int evl_stderr(void);
 
 #ifdef __cplusplus
 }

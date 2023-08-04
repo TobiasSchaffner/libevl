@@ -19,7 +19,7 @@
 static __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
 char fmt_buf[1024];
 
-int evl_outfd = -EBADF, evl_errfd = -EBADF;
+static int evl_outfd = -EBADF, evl_errfd = -EBADF;
 
 void __evl_setup_proxies(void)
 {
@@ -138,4 +138,14 @@ ssize_t evl_eprintf(const char *fmt, ...)
 
 	return ret;
 
+}
+
+int evl_stdout(void)
+{
+	return evl_outfd;
+}
+
+int evl_stderr(void)
+{
+	return evl_errfd;
 }
