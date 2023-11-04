@@ -18,10 +18,9 @@
 #include <evl/sys.h>
 #include <evl/thread.h>
 #include <evl/compiler.h>
-#include <linux/types.h>
-#include <uapi/evl/factory.h>
-#include <uapi/evl/control.h>
-#include <uapi/evl/observable.h>
+#include <evl/factory-abi.h>
+#include <evl/control-abi.h>
+#include <evl/observable-abi.h>
 #include "internal.h"
 
 __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))

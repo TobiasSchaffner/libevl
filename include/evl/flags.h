@@ -9,11 +9,10 @@
 
 #include <time.h>
 #include <evl/atomic.h>
-#include <linux/types.h>
-#include <uapi/evl/types.h>
-#include <uapi/evl/monitor.h>
-#include <uapi/evl/clock.h>
-#include <uapi/evl/factory.h>
+#include <evl/types.h>
+#include <evl/monitor-abi.h>
+#include <evl/clock-abi.h>
+#include <evl/factory-abi.h>
 
 struct evl_flags {
 	unsigned int magic;

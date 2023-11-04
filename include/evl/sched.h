@@ -9,7 +9,7 @@
 
 #include <sys/types.h>
 #include <sched.h>
-#include <uapi/evl/sched.h>
+#include <evl/sched-abi.h>
 
 #ifdef __cplusplus
 extern "C" {

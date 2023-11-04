@@ -32,9 +32,9 @@
 #include <evl/compiler.h>
 #include <evl/evl.h>
 #include <linux/gpio.h>
-#include <uapi/evl/devices/latmus.h>
-#include <uapi/evl/devices/gpio.h>
-#include <uapi/evl/signal.h>
+#include <evl/devices/latmus.h>
+#include <evl/devices/gpio.h>
+#include <evl/signal.h>
 #include <latmon.h>	/* Zephyr-based latmon interface. */
 
 #define ISOLATED_CPU_LIST "/sys/devices/system/cpu/isolated"

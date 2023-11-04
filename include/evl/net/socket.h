@@ -10,8 +10,8 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <linux/types.h>
-#include <uapi/evl/net/socket.h>
+#include <evl/fcntl.h>
+#include <evl/net/socket-abi.h>
 
 struct oob_msghdr {
 	void		*msg_name;

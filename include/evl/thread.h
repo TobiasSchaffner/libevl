@@ -13,10 +13,10 @@
 #include <sched.h>
 #include <evl/syscall.h>
 #include <evl/compat.h>
-#include <uapi/evl/signal.h>
-#include <uapi/evl/thread.h>
-#include <uapi/evl/sched.h>
-#include <uapi/evl/factory.h>
+#include <evl/signal.h>
+#include <evl/thread-abi.h>
+#include <evl/sched-abi.h>
+#include <evl/factory-abi.h>
 
 #define EVL_STACK_DEFAULT			\
 	({					\

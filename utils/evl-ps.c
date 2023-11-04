@@ -20,8 +20,8 @@
 #include <error.h>
 #include <errno.h>
 #include <ftw.h>
-#include <uapi/evl/control.h>
-#include <uapi/evl/thread.h>
+#include <evl/control-abi.h>
+#include <evl/thread-abi.h>
 
 static cpu_set_t cpu_restrict;
 

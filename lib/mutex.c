@@ -21,11 +21,48 @@
 #include <evl/mutex.h>
 #include <evl/thread.h>
 #include <evl/syscall.h>
-#include <linux/types.h>
-#include <uapi/evl/mutex.h>
 #include "internal.h"
 
 #define __MUTEX_DEAD_MAGIC	0
+
+static __always_inline  atomic_t *__ATOMIC32(__u32 *ptr)
+{
+	return (atomic_t *)ptr;
+}
+
+static inline void init_fast_lock(__u32 *fastlock)
+{
+	atomic_store(__ATOMIC32(fastlock), EVL_NO_HANDLE);
+}
+
+static inline bool
+is_mutex_owner(__u32 *fastlock, fundle_t ownerh)
+{
+	return evl_get_index(atomic_read(__ATOMIC32(fastlock))) == ownerh;
+}
+
+static inline
+int fast_lock_mutex(__u32 *fastlock, fundle_t new_ownerh)
+{
+	fundle_t h;
+
+	h = atomic_cmpxchg(__ATOMIC32(fastlock), EVL_NO_HANDLE, new_ownerh);
+	if (h != EVL_NO_HANDLE) {
+		if (evl_get_index(h) == new_ownerh)
+			return -EBUSY;
+
+		return -EAGAIN;
+	}
+
+	return 0;
+}
+
+static inline
+bool fast_unlock_mutex(__u32 *fastlock, fundle_t cur_ownerh)
+{
+	return (fundle_t)atomic_cmpxchg(__ATOMIC32(fastlock),
+			cur_ownerh, EVL_NO_HANDLE) == cur_ownerh;
+}
 
 static int init_mutex_vargs(struct evl_mutex *mutex,
 			int protocol, int clockfd,
@@ -73,7 +110,7 @@ static int init_mutex_vargs(struct evl_mutex *mutex,
 	gst = __evl_shared_memory + eids.state_offset;
 	gst->u.gate.recursive = !!(flags & EVL_MUTEX_RECURSIVE);
 	mutex->u.active.state = gst;
-	atomic_store(&gst->u.gate.owner, EVL_NO_HANDLE);
+	init_fast_lock(&gst->u.gate.owner);
 	__force_read_access(gst->flags); /* Force sync the PTE. */
 	mutex->u.active.fundle = eids.fundle;
 	mutex->u.active.monitor = EVL_MONITOR_GATE;
@@ -231,7 +268,7 @@ static int try_lock(struct evl_mutex *mutex)
 			u_window->pp_pending = mutex->u.active.fundle;
 			protect = true;
 		}
-		ret = evl_fast_lock_mutex(&gst->u.gate.owner, current);
+		ret = fast_lock_mutex(&gst->u.gate.owner, current);
 		if (ret == 0) {
 			gst->u.gate.nesting = 1;
 			gst->flags &= ~EVL_MONITOR_SIGNALED;
@@ -240,7 +277,7 @@ static int try_lock(struct evl_mutex *mutex)
 	} else {
 	slow_path:
 		ret = 0;
-		if (evl_is_mutex_owner(&gst->u.gate.owner, current))
+		if (is_mutex_owner(&gst->u.gate.owner, current))
 			ret = -EBUSY;
 	}
 
@@ -320,7 +357,7 @@ int evl_unlock_mutex(struct evl_mutex *mutex)
 
 	gst = mutex->u.active.state;
 	current = __evl_get_current();
-	if (!evl_is_mutex_owner(&gst->u.gate.owner, current))
+	if (!is_mutex_owner(&gst->u.gate.owner, current))
 		return -EPERM;
 
 	if (gst->u.gate.nesting > 1) {
@@ -336,7 +373,7 @@ int evl_unlock_mutex(struct evl_mutex *mutex)
 	if (mode & (EVL_T_WEAK|EVL_T_WOLI))
 		goto slow_path;
 
-	if (evl_fast_unlock_mutex(&gst->u.gate.owner, current)) {
+	if (fast_unlock_mutex(&gst->u.gate.owner, current)) {
 		if (mutex->u.active.protocol == EVL_GATE_PP) {
 			u_window = __evl_get_current_window();
 			u_window->pp_pending = EVL_NO_HANDLE;

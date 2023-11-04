@@ -8,11 +8,10 @@
 #define _EVL_MUTEX_H
 
 #include <time.h>
-#include <linux/types.h>
 #include <evl/atomic.h>
-#include <uapi/evl/types.h>
-#include <uapi/evl/monitor.h>
-#include <uapi/evl/factory.h>
+#include <evl/types.h>
+#include <evl/monitor-abi.h>
+#include <evl/factory-abi.h>
 
 #define EVL_MUTEX_NORMAL     (0 << 0)
 #define EVL_MUTEX_RECURSIVE  (1 << 0)

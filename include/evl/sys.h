@@ -8,7 +8,7 @@
 #define _EVL_SYS_H
 
 #include <stdarg.h>
-#include <uapi/evl/factory.h>
+#include <evl/factory-abi.h>
 
 #ifdef __cplusplus
 extern "C" {

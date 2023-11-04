@@ -12,7 +12,7 @@
 #include <sys/timex.h>
 #include <sys/ioctl.h>
 #include <evl/syscall.h>
-#include <uapi/evl/clock.h>
+#include <evl/clock-abi.h>
 
 #ifdef __cplusplus
 extern "C" {

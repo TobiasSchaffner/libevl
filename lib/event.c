@@ -22,7 +22,6 @@
 #include <evl/thread.h>
 #include <evl/syscall.h>
 #include <linux/types.h>
-#include <uapi/evl/mutex.h>
 #include "internal.h"
 
 #define __EVENT_ACTIVE_MAGIC	0xef55ef55

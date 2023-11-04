@@ -10,7 +10,7 @@
 #include <evl/thread.h>
 #include <evl/syscall.h>
 #include <evl/sched.h>
-#include <uapi/evl/control.h>
+#include <evl/control-abi.h>
 #include "internal.h"
 
 int evl_set_schedattr(int efd, const struct evl_sched_attrs *attrs)

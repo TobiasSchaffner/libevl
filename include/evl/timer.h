@@ -8,8 +8,7 @@
 #define _EVL_TIMER_H
 
 #include <time.h>
-#include <linux/types.h>
-#include <uapi/evl/clock.h>
+#include <evl/clock-abi.h>
 
 #ifdef __cplusplus
 extern "C" {

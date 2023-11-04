@@ -20,9 +20,9 @@
 #include <evl/sys.h>
 #include <evl/syscall.h>
 #include <evl/thread.h>
+#include <evl/signal.h>
+#include <evl/control-abi.h>
 #include <asm/evl/vdso.h>
-#include <uapi/evl/control.h>
-#include <uapi/evl/signal.h>
 #include "parse_vdso.h"
 #include "internal.h"
 

@@ -5,7 +5,7 @@
  */
 
 #include <evl/evl.h>
-#include <uapi/evl/control.h>
+#include <evl/control-abi.h>
 #include "git_stamp.h"
 
 #ifndef GIT_STAMP

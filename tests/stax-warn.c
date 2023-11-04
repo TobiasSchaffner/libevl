@@ -16,7 +16,7 @@
 #include <error.h>
 #include <errno.h>
 #include <evl/evl.h>
-#include <uapi/evl/devices/hectic.h>
+#include <evl/devices/hectic.h>
 #include "helpers.h"
 
 static int drvfd;

@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <evl/syscall.h>
 #include <asm/evl/syscall.h>
-#include <uapi/evl/syscall.h>
 
 ssize_t oob_read(int efd, void *buf, size_t count)
 {

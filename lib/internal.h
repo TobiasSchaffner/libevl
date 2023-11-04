@@ -10,8 +10,7 @@
 #include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <uapi/evl/thread.h>
-#include <uapi/evl/types.h>
+#include <evl/thread-abi.h>
 
 #define __evl_ptr64(__ptr)	((__u64)(uintptr_t)(__ptr))
 

@@ -9,9 +9,8 @@
 
 #include <sys/types.h>
 #include <evl/syscall.h>
-#include <linux/types.h>
-#include <uapi/evl/xbuf.h>
-#include <uapi/evl/factory.h>
+#include <evl/xbuf-abi.h>
+#include <evl/factory-abi.h>
 
 #define evl_new_xbuf(__bufsz, __fmt, __args...)		     \
 	evl_create_xbuf(__bufsz, __bufsz, EVL_CLONE_PRIVATE, \

@@ -14,9 +14,8 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <linux/types.h>
 #include <evl/sys.h>
-#include <uapi/evl/factory.h>
+#include <evl/factory-abi.h>
 #include "internal.h"
 
 static void do_lart_once(void)

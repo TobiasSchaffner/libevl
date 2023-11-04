@@ -15,7 +15,7 @@
 #include <libgen.h>
 #include <getopt.h>
 #include <evl/evl.h>
-#include <uapi/evl/control.h>
+#include <evl/control-abi.h>
 
 static char *find_install_dir(const char *arg0, const char *subdir)
 {

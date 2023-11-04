@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: MIT
 
 uapi_opt = get_option('uapi')
-o_uapi = meson.current_build_dir() / 'uapi'
+o_dir = meson.current_build_dir()
+o_uapi = o_dir / 'uapi'
 uapi_env = environment()
 uapi_env.set('ARCH', libevl_arch)
 uapi_env.set('UAPI', uapi_opt)
-uapi_env.set('O_UAPI', o_uapi)
+uapi_env.set('OUTPUT_DIR', o_dir)
 run_command(libevl_scripts / 'setup-uapi.sh',
     check : true,
     env : uapi_env

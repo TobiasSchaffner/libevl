@@ -8,6 +8,7 @@
 #define _EVL_SYSCALL_H
 
 #include <sys/types.h>
+#include <evl/syscall-abi.h>
 
 #ifdef __cplusplus
 extern "C" {

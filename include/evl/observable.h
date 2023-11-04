@@ -10,8 +10,8 @@
 #include <time.h>
 #include <stdint.h>
 #include <evl/syscall.h>
-#include <uapi/evl/observable.h>
-#include <uapi/evl/factory.h>
+#include <evl/observable-abi.h>
+#include <evl/factory-abi.h>
 
 struct evl_notification {
 	uint32_t tag;

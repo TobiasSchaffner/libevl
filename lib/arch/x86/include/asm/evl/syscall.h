@@ -7,7 +7,7 @@
 #ifndef _LIB_EVL_X86_SYSCALL_H
 #define _LIB_EVL_X86_SYSCALL_H
 
-#include <uapi/asm-generic/dovetail.h>
+#include <asm-generic/dovetail.h>
 #include <sys/syscall.h>
 
 #define evl_syscall3(__nr, __a0, __a1, __a2)				\

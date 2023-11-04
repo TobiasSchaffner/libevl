@@ -19,7 +19,7 @@
 #include <errno.h>
 #include <evl/evl.h>
 #include <evl/sys.h>
-#include <uapi/asm/evl/fptest.h>
+#include <asm/evl/fptest.h>
 #include "helpers.h"
 
 #define TEST_PERIOD_USEC 1000UL

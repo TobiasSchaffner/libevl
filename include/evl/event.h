@@ -10,10 +10,10 @@
 #include <time.h>
 #include <linux/types.h>
 #include <evl/atomic.h>
+#include <evl/types.h>
 #include <evl/mutex.h>
-#include <uapi/evl/types.h>
-#include <uapi/evl/monitor.h>
-#include <uapi/evl/clock.h>
+#include <evl/monitor-abi.h>
+#include <evl/clock-abi.h>
 
 struct evl_event {
 	unsigned int magic;

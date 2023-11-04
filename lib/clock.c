@@ -13,7 +13,6 @@
 #include <evl/clock.h>
 #include <evl/thread.h>
 #include <evl/sys.h>
-#include <uapi/evl/clock.h>
 #include "internal.h"
 
 int __evl_mono_clockfd = -ENXIO,

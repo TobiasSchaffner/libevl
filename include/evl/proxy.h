@@ -11,8 +11,8 @@
 #include <sys/types.h>
 #include <linux/types.h>
 #include <stdio.h>
-#include <uapi/evl/proxy.h>
-#include <uapi/evl/factory.h>
+#include <evl/proxy-abi.h>
+#include <evl/factory-abi.h>
 
 #define evl_new_proxy(__targetfd, __bufsz, __fmt, __args...)		\
 	evl_create_proxy(__targetfd, __bufsz, 0, EVL_CLONE_PRIVATE,	\
