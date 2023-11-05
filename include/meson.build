@@ -2,7 +2,6 @@
 
 uapi_opt = get_option('uapi')
 o_dir = meson.current_build_dir()
-o_uapi = o_dir / 'uapi'
 uapi_env = environment()
 uapi_env.set('ARCH', libevl_arch)
 uapi_env.set('UAPI', uapi_opt)
@@ -56,9 +55,3 @@ install_headers(
     libevl_net_headers,
     subdir : 'evl/net'
 )
-
-uapi_install = find_program('copy-uapi.sh',
-    dirs : libevl_scripts,
-    required : true
-)
-meson.add_install_script(uapi_install, o_uapi, get_option('prefix') / get_option('includedir'))
