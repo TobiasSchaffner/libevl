@@ -24,6 +24,7 @@ test_programs = [
     'monitor-event-untrack',
     'monitor-flags',
     'monitor-flags-broadcast',
+    'monitor-flags-inband',
     'monitor-pi',
     'monitor-pi-deadlock',
     'monitor-pi-deboost',
