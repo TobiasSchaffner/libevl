@@ -16,17 +16,12 @@ libevl_sources = [
     'sem.c',
     'socket.c',
     'sys.c',
+    'syscall.c',
     'thread.c',
     'timer.c',
     'version.c',
     'xbuf.c',
 ]
-
-libsys = static_library('syscalls', 'syscall.c',
-    include_directories : [ libevl_incdirs ],
-    c_args : '-fomit-frame-pointer'
-)
-libsys_dep = declare_dependency(link_with : libsys)
 
 stamp_generator = find_program('generate-git-stamp.sh',
     dirs : libevl_scripts,
@@ -47,7 +42,7 @@ libevl = both_libraries('evl', libevl_sources,
      c_args : [ '-DLIBVERSION="' + libevl_version + '"' ],
      install : true,
      version : libevl_dso_version,
-     dependencies : [ libsys_dep, pthread_dep ],
+     dependencies : [ pthread_dep ],
 )
 
 libevl_dep = declare_dependency(link_with : libevl,
