@@ -40,17 +40,28 @@ static void *inband_receiver(void *arg)
 
 static void *oob_receiver(void *arg)
 {
-	int n = 0, tfd, ret;
-	__s32 bits;
+	int n = 0, tfd, ret, bits;
 
 	__Tcall_assert(tfd, evl_attach_self("monitor-flags-oob-receiver:%d",
 					    getpid()));
 	__Tcall_assert(ret, sem_post(&o_start));
 
 	do {
-		__Tcall_assert(ret, evl_wait_flags(&i_flags, &bits));
-		__Texpr_assert(bits == (1 << n));
-		__Tcall_assert(ret, evl_post_flags(&o_flags, bits));
+		/*
+		 * Exercise both oob interfaces: the evl_*_flags()
+		 * routines on odd rounds, the oob I/O syscalls on
+		 * even ones. The result should be the same:
+		 * disjunctive wait and unicast send ops.
+		 */
+		if (n % 1) {
+			__Tcall_assert(ret, evl_wait_flags(&i_flags, &bits));
+			__Texpr_assert(bits == (1 << n));
+			__Tcall_assert(ret, evl_post_flags(&o_flags, bits));
+		} else {
+			__Tcall_assert(ret, oob_read(i_ffd, &bits, sizeof(bits)));
+			__Texpr_assert(bits == (1 << n));
+			__Tcall_assert(ret, oob_write(o_ffd, &bits, sizeof(bits)));
+		}
 		n++;
 	} while ((__u32)bits != 0x80000000);
 
@@ -62,7 +73,7 @@ int main(int argc, char *argv[])
 	pthread_t i_receiver, o_receiver;
 	struct pollfd pollfd;
 	void *status;
-	__s32 n, bits;
+	int n, bits;
 	char *name;
 	int ret;
 
