@@ -60,7 +60,7 @@
  * Eventually, tell EVL to pick packets tagged for VLAN 42 (you could ask EVL
  * to monitor multiple VLANs by passing a list of tags like '42-45,100,107'
  * the same way):
- * # echo 42 > /sys/class/evl/control/net_vlans
+ * # echo 42 > /sys/class/evl/net/vlans
  *
  * ==
  * == Configuring the ICMPv4(ECHO) issuer
