@@ -314,7 +314,7 @@ static void log_results(struct latmus_measurement *meas,
 		time(&now);
 		dt = now - start_time - 1; /* -1s warm-up time */
 		printf("RTT|  %.2ld:%.2ld:%.2ld  (%s, %u us period,",
-			dt / 3600, (dt / 60) % 60, dt % 60,
+			(long)(dt / 3600), (long)((dt / 60) % 60), (long)(dt % 60),
 			context_labels[context_type], period_usecs);
 		if (context_type != EVL_LAT_IRQ && context_type != EVL_LAT_SIRQ)
 			printf(" priority %d,", responder_priority);
@@ -771,9 +771,9 @@ static void dump_gnuplot(time_t duration)
 	if (c_state_restricted)
 		fprintf(plot_fp, "# C-state restricted\n");
 	fprintf(plot_fp, "# duration (hhmmss): %.2ld:%.2ld:%.2ld\n",
-		duration / 3600, (duration / 60) % 60, duration % 60);
+		(long)(duration / 3600), (long)((duration / 60) % 60), (long)(duration % 60));
 	fprintf(plot_fp, "# peak (hhmmss): %.2ld:%.2ld:%.2ld\n",
-		peak_time / 3600, (peak_time / 60) % 60, peak_time % 60);
+		(long)(peak_time / 3600), (long)((peak_time / 60) % 60), (long)(peak_time % 60));
 	if (all_overruns > 0)
 		fprintf(plot_fp, "# OVERRUNS: %u\n", all_overruns);
 	if (spurious_inband_switches > 0)
@@ -827,7 +827,7 @@ static void do_measurement(int type)
 		fprintf(stderr, "warming up on CPU%d%s...\n", responder_cpu, cpu_s);
 	else
 		fprintf(stderr, "running quietly for %ld seconds on CPU%d%s\n",
-			timeout, responder_cpu, cpu_s);
+			(long)timeout, responder_cpu, cpu_s);
 
 	switch (type) {
 	case EVL_LAT_OOB_GPIO:
@@ -858,9 +858,9 @@ static void do_measurement(int type)
 			(double)(all_sum / all_samples) / 1000.0,
 			(double)all_maxlat / 1000.0,
 			all_overruns, spurious_inband_switches,
-			duration / 3600, (duration / 60) % 60,
-			duration % 60, duration / 3600,
-			(timeout / 60) % 60, timeout % 60);
+			(long)(duration / 3600), (long)((duration / 60) % 60),
+			(long)(duration % 60), (long)(duration / 3600),
+			(long)((timeout / 60) % 60), (long)(timeout % 60));
 
 	if (spurious_inband_switches > 0) {
 		if (all_samples > 0)
