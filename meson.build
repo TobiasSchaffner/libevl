@@ -46,12 +46,15 @@ pthread_dep = dependency('threads')
 
 # Do some architecture name remapping
 libevl_arch = host_machine.cpu_family()
+if libevl_arch == 'x86'
+    error('i386 not supported')
+endif
 if libevl_arch == 'x86_64'
-   libevl_arch = 'x86'
+    libevl_arch = 'x86'
 endif
 
 if libevl_arch == 'aarch64'
-   libevl_arch = 'arm64'
+    libevl_arch = 'arm64'
 endif
 
 post_install = find_program('post-install.sh',
