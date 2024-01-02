@@ -17,7 +17,17 @@ if test -r $UAPI/Kbuild; then
     link_dir $UAPI/arch/$ARCH/include/uapi/asm/evl asm
     link_dir $UAPI/include/uapi/asm-generic .
 else
+    DEB_HOST_ARCH=$ARCH
+    if [ "$DEB_HOST_ARCH" = "x86" ]; then
+        DEB_HOST_ARCH=amd64
+    fi
+    DEB_HOST_MULTIARCH=$( \
+        dpkg-architecture -q DEB_HOST_MULTIARCH -a $DEB_HOST_ARCH 2>/dev/null)
     link_dir $UAPI/evl .
-    link_dir $UAPI/asm/evl asm
+    if [ -d $UAPI/$DEB_HOST_MULTIARCH/asm/evl ]; then
+        link_dir $UAPI/$DEB_HOST_MULTIARCH/asm/evl asm
+    else
+        link_dir $UAPI/asm/evl asm
+    fi
     link_dir $UAPI/asm-generic .
 fi
