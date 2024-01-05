@@ -2,6 +2,7 @@
 
 executable('evl',
     'evl.c',
+    c_args: [ '-DLIBEXECDIR="' + get_option('libexecdir') + '"' ],
     install: true,
     dependencies: libevl_dep
 )
