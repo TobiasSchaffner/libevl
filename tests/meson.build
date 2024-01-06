@@ -79,7 +79,7 @@ test_programs = [
 foreach t : test_programs
     x = executable(t, t + '.c',
     install : true,
-    install_dir : 'tests',
+    install_dir : libexec_evl + '/tests',
     dependencies : [ libtest_dep, libevl_dep ]
 )
 endforeach
@@ -93,7 +93,7 @@ foreach t : test_programs_with_m
     x = executable(t, t + '.c',
     c_args : '-Wno-array-bounds',
     install : true,
-    install_dir : 'tests',
+    install_dir : libexec_evl + '/tests',
     dependencies : [ libtest_dep, libevl_dep, m_dep ]
 )
 endforeach
@@ -106,7 +106,7 @@ atomic_dep = cc.find_library('atomic', required : true)
 foreach t : test_programs_with_atomic
     x = executable(t, t + '.c',
     install : true,
-    install_dir : 'tests',
+    install_dir : libexec_evl + '/tests',
     dependencies : [ libtest_dep, libevl_dep, atomic_dep ]
 )
 endforeach

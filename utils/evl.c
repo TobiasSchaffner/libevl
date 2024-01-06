@@ -124,7 +124,7 @@ int main(int argc, char *const argv[])
 	if (ret < 0)
 		error(1, ENOMEM, "%s", arg0);
 
-	testdir = find_install_dir(arg0, "tests");
+	testdir = find_install_dir(arg0, LIBEXECDIR "/evl/tests");
 
 	setenv("EVL_CMDDIR", cmddir, 1);
 	setenv("EVL_TESTDIR", testdir, 1);
