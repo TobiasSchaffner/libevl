@@ -37,6 +37,7 @@ test_programs = [
     'monitor-pp-raise',
     'monitor-pp-tryenter',
     'monitor-pp-weak',
+    'monitor-recursive',
     'monitor-steal',
     'monitor-trylock',
     'monitor-wait-multiple',
