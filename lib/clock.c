@@ -12,6 +12,7 @@
 #include <sys/timex.h>
 #include <evl/clock.h>
 #include <evl/thread.h>
+#include <evl/sched.h>
 #include <evl/sys.h>
 #include "internal.h"
 
@@ -108,8 +109,11 @@ int evl_usleep(useconds_t usecs)
 {
 	struct timespec now, next;
 
-	if (usecs < 1 || usecs > 1000000)
+	if (usecs > 1000000)
 		return -EINVAL;
+
+	if (usecs == 0)
+		return 0;
 
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &now);
 	timespec_add_ns(&next, &now, usecs * 1000);
