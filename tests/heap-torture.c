@@ -401,7 +401,7 @@ static int test_seq(size_t heap_size, size_t block_size, int flags)
 		goto out;
 	}
 
-	chunks = calloc(sizeof(*chunks), maxblocks);
+	chunks = calloc(maxblocks, sizeof(*chunks));
 	if (chunks == NULL) {
 		ret = -ENOMEM;
 		goto no_chunks;
