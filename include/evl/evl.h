@@ -24,7 +24,7 @@
 
 #define __EVL__  27	/* API version */
 
-#define EVL_ABI_PREREQ  34
+#define EVL_ABI_PREREQ  36
 
 #if EVL_ABI_LEVEL < EVL_ABI_PREREQ
 #error EVL kernel uapi is too old

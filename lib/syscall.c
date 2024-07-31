@@ -13,12 +13,12 @@
 
 /*
  * EVL relies on Dovetail's handling of prctl(2) to receive requests
- * which have the out-of-band syscall bit set in the option
+ * which have the out-of-band syscall marker present in the option
  * argument. All EVL syscall return values fit in prctl's return type,
  * which is a common integer.
  */
 #define __evl_syscall(__nr, __a0, __a1, __a2)	\
-	prctl((__nr) | __OOB_SYSCALL_BIT, (long)(__a0), (long)(__a1), (long)(__a2), 0)
+	prctl(PR_OOB_SYSCALL, (__nr), (long)(__a0), (long)(__a1), (long)(__a2))
 
 ssize_t oob_read(int efd, void *buf, size_t count)
 {
