@@ -14,22 +14,17 @@
 
 #define __evl_ptr64(__ptr)	((__u64)(uintptr_t)(__ptr))
 
-#if __WORDSIZE == 64 || defined(__USE_TIME_BITS64)
+#if __WORDSIZE == 64
 /*
- * If timespec is y2038-safe, we don't need to bounce via an
- * __evl_timespec buffer, since both types are guaranteed compatible
- * bitwise. y2038-safe *libc such as glibc and musl set
- * __USE_TIME_BITS64 as required by the uapi contract with the kernel
- * [1], others (including earlier releases) might not so we check
- * __WORDSIZE too in order to always have it right for 64bit
- * architectures.
+ * On a 64bit CPU, we may coerce the standard timespec to an
+ * __evl_timespec since both are deemed compatible bitwise.
  *
- * CAUTION: the assumption here is that both the y2038-safe timespec
- * type and __evl_timespec are compatible bitwise with
- * __kernel_timespec, so we may coerce values safely between these
- * types.
- *
- * [1] https://sourceware.org/glibc/wiki/Y2038ProofnessDesign
+ * CAUTION: in 32bit mode with __USE_TIME_BITS64 set, struct timespec
+ * is NOT strictly bitwise compatible with __evl_timespec because the
+ * nanosecond field is only 32bit long, padded to a 64bit size with an
+ * anon 32bit word. We can't pass the kernel a struct containing 32bit
+ * of possibly uninit memory, so we have to fall back to bouncing the
+ * user timespec to a sane __evl_timespec. Oh, well...
  */
 #define __evl_ktimespec(__ts, __kts)			\
 	({						\
@@ -43,12 +38,12 @@
 	})
 #else
 /*
- * Bummer, we have to bounce the 32bit timespec to a 64bit one the
- * kernel would accept. Downside of it: we might get SIGSEGV if __ts
- * is an invalid pointer instead of -EFAULT as one would
- * expect. Upside: this interface won't break user code which did not
- * switch to timespec64, which would be the only reasonable thing to
- * do when support for y2038 is generally available from *libc.
+ * Bummer, we have to bounce the user timespec to an
+ * __evl_timespec. Downside of it: we might get SIGSEGV if __ts is an
+ * invalid pointer instead of -EFAULT as one would expect. Upside:
+ * this interface won't break user code which did not switch to
+ * timespec64, which would be the only reasonable thing to do when
+ * support for y2038 is generally available from *libc.
  */
 #define __evl_ktimespec(__ts, __kts)			\
 	({						\
