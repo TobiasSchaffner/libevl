@@ -8,6 +8,7 @@
 #define _EVL_CLOCK_H
 
 #include <time.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/timex.h>
 #include <sys/ioctl.h>
