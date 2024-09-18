@@ -10,10 +10,12 @@
  * == EVL (IP) networking in a nutshell
  * ==
  *
- * EVL recognizes the IP packets it should handle based on VLAN
- * tagging. Packets which belong to a so-called 'out-of-band VLAN'
- * should go through the EVL stack, others should take the regular
- * delivery path through the common network stack.
+ * EVL can recognize the IP packets it should handle based on two
+ * types of input filters:
+ *
+ * - VLAN tagging. Packets which belong to a so-called 'out-of-band
+ * VLAN' should go through the EVL stack, others should take the
+ * regular delivery path through the common network stack.
  *
  * Would your ethernet switches have to be specifically 802.1Q-capable
  * in order to convey out-of-band traffic then? No. Dot1q has been
@@ -22,6 +24,11 @@
  * they should also be able to cope with the four additional octets
  * involved in VLAN tagging without having to lower the MTU everywhere
  * (most equipments even support jumbo frames these days).
+ *
+ * - eBPF filtering. An eBPF program can be installed on a network
+ * device controlled by EVL in order to decide whether an ingress
+ * packet should be processed by the EVL netstack, the in-band/regular
+ * netstack or dropped.
  *
  * ==
  * == Configuring the ICMPv4(ECHO) responder
