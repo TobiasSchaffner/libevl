@@ -13,30 +13,10 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
-#include <linux/types.h>
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
+#include <evl/net/device.h>
 #include <evl/sys.h>
-
-/*
- * FIXME: remove inline ABI defs and fixup EVL_ABI_PREREQ
- */
-#define EVL_NET_DEV		"net"
-
-#define EVL_NET_IOCBASE  0xf0
-
-struct evl_net_devfd {
-	__u64 name_ptr;		/* (const char __user *name) */
-	__u32 fd;
-};
-
-#define EVL_NET_GETDEVFD	_IOWR(EVL_NETDEV_IOCBASE, 0, struct evl_net_devfd)
-
-#define EVL_NETDEV_IOCBASE  0xef
-
-#define EVL_NDEVIOC_SETRXEBPF	_IOW(EVL_NETDEV_IOCBASE, 0, __s32 /* fd */)
-
-/* end of ABI defs */
 
 #define short_optlist "@hF::i:"
 
@@ -78,8 +58,8 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 		error(1, errno, "cannot open EVL '%s' device", EVL_NET_DEV);
 
 	/*
-	 * Get an EVL-generated file descriptor on the network
-	 * device. Lookup is performed by name.
+	 * Get a file descriptor to the network device for EVL-related
+	 * operations. Lookup is performed by name.
 	 */
 	req.name_ptr = (__u64)(uintptr_t)netif;
 	ret = ioctl(netfd, EVL_NET_GETDEVFD, &req);
