@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
 			set_filter = true;
 			break;
 		case 'h':
+			usage(argv[0]);
 			return 0;
 		case '@':
 			printf("manage the EVL out-of-band networking stack\n");
