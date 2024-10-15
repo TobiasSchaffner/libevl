@@ -5,8 +5,7 @@
  * sending[-S]/receiving[-R] UDP packets to/from a particular IP
  * address[-a] and port[-p].
  *
- * See the discussion in oob-net-icmp.c for various explanations and
- * netstack configuration details.
+ * See https://v4.xenomai.org/core/networking/ for details.
  */
 
 #include <pthread.h>
