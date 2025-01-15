@@ -6,7 +6,7 @@
  * interface. Using the ping command is enough to trigger a response
  * from this program.
  *
- * See https://v4.xenomai.org/core/networking/ for details.
+ * See https://v4.xenomai.org/core/net/ for details.
  */
 
 #include <pthread.h>

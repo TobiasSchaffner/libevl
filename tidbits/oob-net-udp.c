@@ -5,7 +5,7 @@
  * sending[-S]/receiving[-R] UDP packets to/from a particular IP
  * address[-a] and port[-p].
  *
- * See https://v4.xenomai.org/core/networking/ for details.
+ * See https://v4.xenomai.org/core/net/ for details.
  */
 
 #include <pthread.h>
