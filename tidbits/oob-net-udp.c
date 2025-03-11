@@ -82,7 +82,7 @@ static void receiver(int s, struct sockaddr_in *addr, int iter)
 	if (ret < 0)
 		error(1, errno, "bind() failed");
 
-	ret = getsockname(s, &_addr, &len);
+	ret = getsockname(s, (struct sockaddr *)&_addr, &len);
 	if (ret < 0)
 		error(1, errno, "getsockname() failed");
 
