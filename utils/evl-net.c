@@ -4,6 +4,7 @@
  * Copyright (C) 2024 Philippe Gerum  <rpm@xenomai.org>
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <error.h>
 #include <errno.h>
@@ -12,19 +13,33 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
+#include <evl/compiler.h>
 #include <evl/net/device.h>
+#include <evl/net/socket.h>
 #include <evl/sys.h>
 
-#define short_optlist "@hF::i:"
+#define short_optlist "@hF::s:S:i:"
 
 static const struct option options[] = {
 	{
 		.name = "filter",
 		.has_arg = optional_argument,
 		.val = 'F',
+	},
+	{
+		.name = "solicit",
+		.has_arg = required_argument,
+		.val = 's',
+	},
+	{
+		.name = "solicit-permanent",
+		.has_arg = required_argument,
+		.val = 'S',
 	},
 	{
 		.name = "interface",
@@ -43,6 +58,8 @@ static void usage(const char *arg0)
 {
         fprintf(stderr, "usage: %s [options]:\n", basename(arg0));
 	fprintf(stderr, "-F[<bpf-module.o>] -i <network-interface>     install/remove eBPF filter (RX)\n");
+	fprintf(stderr, "-s <ipaddr>                                   neighbour solicitation with <ipaddr>\n");
+	fprintf(stderr, "-S <ipaddr>                                   neighbour solicitation with <ipaddr> (set permanent)\n");
 }
 
 static void set_bpf_filter(const char *netif, const char *modpath)
@@ -94,6 +111,35 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 				error(1, errno, "ioctl(EVL_NDEVIOC_SETRXEBPF)");
 		}
 	}
+
+	close(devfd);
+	close(netfd);
+}
+
+static void solicit_neighbour(const char *ipaddr, bool permanent)
+{
+	struct evl_net_solicit solicit;
+	struct sockaddr_in *sin = (struct sockaddr_in *)&solicit.addr;
+	long ret;
+	int s;
+
+	memset(&solicit, 0, sizeof(solicit));
+	solicit.addr.sa_family = AF_INET;
+	if (permanent)
+		solicit.flags = EVL_NEIGH_PERMANENT;
+
+	if (!inet_pton(AF_INET, ipaddr, &sin->sin_addr))
+		error(1, EINVAL, "invalid IP address");
+
+	s = socket(AF_INET, SOCK_DGRAM | SOCK_OOB, 0);
+	if (s < 0)
+		error(1, errno, "cannot create out-of-band UDP socket");
+
+	ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
+	if (ret)
+		error(1, errno, "ioctl(EVL_SOCKIOC_SOLICIT)");
+
+	close(s);
 }
 
 static void bad_usage(const char *arg0)
@@ -104,8 +150,8 @@ static void bad_usage(const char *arg0)
 
 int main(int argc, char *argv[])
 {
-	const char *netif = NULL, *modpath = NULL;
-	bool set_filter = false;
+	bool set_filter = false, solicit = false, permanent = false;
+	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL;
 	int c;
 
 	for (;;) {
@@ -120,6 +166,13 @@ int main(int argc, char *argv[])
 		case 'F':
 			modpath = optarg;
 			set_filter = true;
+			break;
+		case 'S':
+			permanent = true;
+			__fallthrough;
+		case 's':
+			ipaddr = optarg;
+			solicit = true;
 			break;
 		case 'h':
 			usage(argv[0]);
@@ -136,9 +189,15 @@ int main(int argc, char *argv[])
 		bad_usage(argv[0]);
 
 	if (set_filter) {
-		if (!netif)
+		if (!netif || (ipaddr && !solicit))
 			bad_usage(argv[0]);
 		set_bpf_filter(netif, modpath);
+	}
+
+	if (solicit) {
+		if (netif && !set_filter)
+			bad_usage(argv[0]);
+		solicit_neighbour(ipaddr, permanent);
 	}
 
 	return 0;
