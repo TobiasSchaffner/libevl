@@ -114,6 +114,7 @@ int main(int argc, char *argv[])
 {
 	int tfd, s, c, mcount = 1, iter = 0, port = 42042;
 	const char *text = "Mellow sword!";
+	struct evl_net_solicit solicit;
 	struct sched_param param;
 	struct sockaddr_in addr;
 	const char *ip = NULL;
@@ -183,12 +184,28 @@ int main(int argc, char *argv[])
 		error(1, errno, "cannot create out-of-band UDP socket");
 
 	if (send) {
+		/*
+		 * Guarantee a mere oob path from the first packet
+		 * onward by pre-caching the route and link-layer
+		 * address via an explicit neighbour solicitation
+		 * before we start sending data.
+		 */
+		memset(&solicit, 0, sizeof(solicit));
+		solicit.addr.sa_family = AF_INET;
+		*((struct sockaddr_in *)&solicit.addr) = addr;
+		solicit.flags = EVL_NEIGH_PERMANENT;
+		ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
+		if (ret)
+			error(1, errno, "ioctl(EVL_SOCKIOC_SOLICIT)");
+
 		if (verbosity)
 			printf("== sender mode (=> %s:%d)\n", ip, port);
+
 		sender(s, text, mcount, &addr, iter);
 	} else {
 		if (verbosity)
 			printf("== receiver mode (<= %s:%d)\n", ip, port);
+
 		receiver(s, &addr, iter);
 	}
 
