@@ -971,18 +971,58 @@ static void restrict_c_state(void)
 		c_state_restricted = true;
 }
 
+static void listen_broadcast_address(char *buffer, ssize_t blen)
+{
+	struct sockaddr_in addr;
+	ssize_t len;
+	int sock;
+
+	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (sock < 0)
+		error(1, errno,"failed to create socket");
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(LATMON_NET_PORT);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+		error(1, errno, "failed to bind socket");
+
+	while (1) {
+		len = recv(sock, buffer, blen - 1, 0);
+		if (len < 0) {
+			if (errno != EINTR)
+				error(1, errno,
+					"failed to receive broadcast message");
+			continue;
+		}
+		buffer[len] = '\0';
+		break;
+    }
+
+    close(sock);
+}
+
 static void parse_host_spec(const char *host, struct in_addr *in_addr)
 {
 	struct addrinfo hints, *res;
+	char buffer[64];
 	int ret;
+
+	if (!strcmp(host, "broadcast")) {
+		listen_broadcast_address(buffer, sizeof(buffer));
+		host = buffer;
+	}
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_ADDRCONFIG;
+
 	ret = getaddrinfo(host, NULL, &hints, &res);
 	if (ret)
-		error(1, ret == EAI_SYSTEM ? errno : ESRCH,
+		 error(1, ret == EAI_SYSTEM ? errno : ESRCH,
 			"getaddrinfo(%s)", host);
 
 	*in_addr = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
@@ -1172,8 +1212,8 @@ static void usage(void)
         fprintf(stderr, "-l --lines=<num>        result lines per page, 0 = no pagination [=21]\n");
         fprintf(stderr, "-H --histogram[=<nr>]   set histogram size to <nr> cells [=200]\n");
         fprintf(stderr, "-g --plot=<filename>    dump histogram data to file (gnuplot format)\n");
-        fprintf(stderr, "-Z --oob-gpio=<host>    measure EVL response time to GPIO event via <host>\n");
-        fprintf(stderr, "-z --inband-gpio=<host> measure in-band response time to GPIO event via <host>\n");
+        fprintf(stderr, "-Z --oob-gpio=<host>    measure EVL response time to GPIO event via <host|broadcast>\n");
+        fprintf(stderr, "-z --inband-gpio=<host> measure in-band response time to GPIO event via <host|broadcast>\n");
         fprintf(stderr, "-I --gpio-in=<spec>     input GPIO line configuration\n");
         fprintf(stderr, "   with <spec> = gpiochip-devname,pin-number[,rising-edge|falling-edge]\n");
         fprintf(stderr, "-O --gpio-out=<spec>    output GPIO line configuration\n");
