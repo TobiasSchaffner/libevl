@@ -39,7 +39,6 @@ ssize_t oob_recvmsg(int s, struct oob_msghdr *msghdr,
 	u_msghdr.flags = flags;	/* in/out */
 	u_msghdr.timeout = timeout ? *__evl_ktimespec(timeout, kts) :
 		*__evl_ktimespec(&zerotime, kts);
-	u_msghdr.timestamp = *__evl_ktimespec(&zerotime, kts);
 
 	ret = oob_ioctl(s, EVL_SOCKIOC_RECVMSG, &u_msghdr);
 	if (ret)
@@ -48,8 +47,6 @@ ssize_t oob_recvmsg(int s, struct oob_msghdr *msghdr,
 	msghdr->msg_namelen = u_msghdr.namelen;
 	msghdr->msg_controllen = u_msghdr.ctllen;
 	msghdr->msg_flags = u_msghdr.flags;
-	msghdr->msg_time.tv_sec = (time_t)u_msghdr.timestamp.tv_sec;
-	msghdr->msg_time.tv_nsec = (long)u_msghdr.timestamp.tv_nsec;
 
 	return (__ssize_t)u_msghdr.count;
 }
@@ -72,7 +69,6 @@ ssize_t oob_sendmsg(int s, const struct oob_msghdr *msghdr,
 	u_msghdr.flags = flags;	/* in */
 	u_msghdr.timeout = timeout ? *__evl_ktimespec(timeout, kts) :
 		*__evl_ktimespec(&zerotime, kts);
-	u_msghdr.timestamp = *__evl_ktimespec(&msghdr->msg_time, kts);
 
 	ret = oob_ioctl(s, EVL_SOCKIOC_SENDMSG, &u_msghdr);
 	if (ret)

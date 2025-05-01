@@ -21,7 +21,6 @@ struct oob_msghdr {
 	void		*msg_control;
 	size_t		msg_controllen;
 	int		msg_flags;
-	struct timespec msg_time;
 };
 
 #ifdef __cplusplus
