@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	if (!inet_pton(AF_INET, ip, &addr.sin_addr))
-		error(1, -EINVAL, "invalid IP address");
+		error(1, EINVAL, "invalid IP address");
 
 	param.sched_priority = 1;
 	ret = pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
