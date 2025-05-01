@@ -971,61 +971,61 @@ static void restrict_c_state(void)
 		c_state_restricted = true;
 }
 
-static void listen_broadcast_address(char *buffer, ssize_t blen)
+static void listen_broadcast_address(struct sockaddr_in *peer)
 {
-	struct sockaddr_in addr;
-	ssize_t len;
+	struct sockaddr_in local;
+	socklen_t socklen;
 	int sock;
+	char c;
 
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (sock < 0)
 		error(1, errno,"failed to create socket");
 
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(LATMON_NET_PORT);
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	memset(&local, 0, sizeof(local));
+	local.sin_family = AF_INET;
+	local.sin_port = htons(LATMON_NET_PORT);
+	local.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+	if (bind(sock, (struct sockaddr *)&local, sizeof(local)) < 0)
 		error(1, errno, "failed to bind socket");
 
-	while (1) {
-		len = recv(sock, buffer, blen - 1, 0);
-		if (len < 0) {
-			if (errno != EINTR)
-				error(1, errno,
-					"failed to receive broadcast message");
-			continue;
-		}
-		buffer[len] = '\0';
-		break;
-    }
+	/*
+	 * We don't actually care about the received message,
+	 * we only need the sender's address.
+	 */
+	socklen = sizeof(*peer);
+	while (recvfrom(sock, &c, 1, 0, (struct sockaddr *)peer, &socklen) < 0) {
+		if (errno != EINTR)
+			error(1, errno,
+				"failed to receive broadcast message");
+	}
 
-    close(sock);
+	close(sock);
 }
 
 static void parse_host_spec(const char *host, struct in_addr *in_addr)
 {
 	struct addrinfo hints, *res;
-	char buffer[64];
+	struct sockaddr_in peer;
 	int ret;
 
 	if (!strcmp(host, "broadcast")) {
-		listen_broadcast_address(buffer, sizeof(buffer));
-		host = buffer;
+		listen_broadcast_address(&peer);
+		*in_addr = peer.sin_addr;
+	} else {
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags = AI_ADDRCONFIG;
+
+		ret = getaddrinfo(host, NULL, &hints, &res);
+		if (ret)
+			error(1, ret == EAI_SYSTEM ? errno : ESRCH,
+				"getaddrinfo(%s)", host);
+
+		*in_addr = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
 	}
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_ADDRCONFIG;
-
-	ret = getaddrinfo(host, NULL, &hints, &res);
-	if (ret)
-		 error(1, ret == EAI_SYSTEM ? errno : ESRCH,
-			"getaddrinfo(%s)", host);
-
-	*in_addr = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
 }
 
 static int parse_gpio_spec(const char *spec, int *pin,
