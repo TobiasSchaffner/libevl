@@ -29,6 +29,7 @@
 #include <evl/sys.h>
 #include <asm/evl/fptest.h>
 #include <evl/devices/hectic.h>
+#include "helpers.h"
 
 #define OOBCPUS_LIST  "/sys/devices/virtual/evl/control/cpus"
 
@@ -887,26 +888,6 @@ static int task_create(struct cpu_tasks *cpu,
 	return 0;
 }
 
-static int open_rttest(unsigned int count)
-{
-	int fd, ret;
-
-	fd = open("/dev/hectic", O_RDWR);
-	if (fd < 0) {
-		fprintf(stderr, "hectic: cannot open /dev/hectic\n"
-			"(modprobe hectic?)\n");
-		return -1;
-	}
-
-	ret = ioctl(fd, EVL_HECIOC_SET_TASKS_COUNT, count);
-	if (ret) {
-		fprintf(stderr, "hectic: ioctl: %m\n");
-		return -1;
-	}
-
-	return fd;
-}
-
 const char *all_nofp [] = {
 	"rtk",
 	"rtk",
@@ -983,6 +964,8 @@ static void usage(FILE *fd, const char *progname)
 		"--stress <period> or -s <period> enable a stress mode where:\n"
 		"  context switches occur every <period> us;\n"
 		"  a background task uses fpu (and check) fpu all the time.\n"
+		"  Pass zero to disable stressing.\n"
+		"--interactive or -i, force interactive run.\n"
 		"Each 'threadspec' specifies the characteristics of a "
 		"thread to be created:\n"
 		"threadspec = (rtup|rtus|rtuo)[_ufpp|_ufps]*[0-9]* or rtk[0-9]*\n"
@@ -1156,12 +1139,12 @@ fail:
 
 int main(int argc, const char *argv[])
 {
-	unsigned j, use_fp = 1, stress = 0;
+	unsigned j, use_fp = 1, stress = 200;
+	int sig, fd, c, n, i, timeout = 0;
 	const char *progname = argv[0];
 	pthread_attr_t rt_attr;
 	struct cpu_tasks *cpus;
 	struct sched_param sp;
-	int sig, fd, c, n, i;
 	char buf[BUFSIZ];
 	sigset_t mask;
 
@@ -1180,6 +1163,11 @@ int main(int argc, const char *argv[])
 
 	fp_features = evl_detect_fpu();
 
+	if (getenv("EVL_CMDDIR")) { /* Started by evl-test? */
+		quiet = 2;	/* Force complete quieteness. */
+		timeout = 5;	/* Run for 5 secs */
+	}
+
 	opterr = 0;
 	for (;;) {
 		static struct option long_options[] = {
@@ -1191,53 +1179,49 @@ int main(int argc, const char *argv[])
 			{ "stress",  1, NULL, 's' },
 			{ "timeout", 1, NULL, 'T' },
 			{ "cpu", 1, NULL, 'c' },
+			{ "interactive", 0, NULL, 'i' },
 			{ NULL,      0, NULL, 0   }
 		};
-		c = getopt_long(argc, (char *const *) argv, "hl:nqQs:T:c:",
+		c = getopt_long(argc, (char *const *) argv, "hl:nqQs:T:c:i",
 				long_options, NULL);
 
 		if (c == -1)
 			break;
 
 		switch(c) {
-
 		case 'h':
 			usage(stdout, progname);
 			exit(EXIT_SUCCESS);
-
 		case 'l':
 			data_lines = xatoul(optarg);
 			break;
-
 		case 'n':
 			use_fp = 0;
 			break;
-
 		case 'q':
 			quiet = 1;
 			break;
-
 		case 'Q':
 			quiet = 2;
 			break;
-
 		case 's':
 			stress = xatoul(optarg);
 			break;
-
 		case 'T':
-			alarm(xatoul(optarg));
+			timeout = xatoul(optarg);
 			break;
-
 		case 'c':
 			build_cpu_mask(optarg);
 			break;
-
+		case 'i':
+			/* Force interactive mode. */
+			quiet = 0;
+			timeout = 0;
+			break;
 		case '?':
 			usage(stderr, progname);
 			fprintf(stderr, "%s: Invalid option.\n", argv[optind-1]);
 			exit(EXIT_FAILURE);
-
 		case ':':
 			usage(stderr, progname);
 			fprintf(stderr, "Missing argument of option %s.\n",
@@ -1245,6 +1229,9 @@ int main(int argc, const char *argv[])
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	if (timeout)
+		alarm(timeout);
 
 	/* Set a reasonable default if -c not given. */
 	nr_cpus = CPU_COUNT(&cpu_affinity);
@@ -1424,10 +1411,16 @@ int main(int argc, const char *argv[])
 		struct cpu_tasks *cpu = &cpus[n];
 		char buffer[64];
 
-		cpu->fd = open_rttest(cpu->tasks_count);
+		cpu->fd = open("/dev/hectic", O_RDWR);
+		if (cpu->fd < 0) {
+			status = EXIT_NO_SUPPORT;
+			goto cleanup;
+		}
 
-		if (cpu->fd == -1)
+		if (ioctl(cpu->fd, EVL_HECIOC_SET_TASKS_COUNT, cpu->tasks_count)) {
+			perror("ioctl(EVL_HECIOC_SET_TASKS_COUNT)");
 			goto failure;
+		}
 
 		if (ioctl(cpu->fd, EVL_HECIOC_SET_CPU, i)) {
 			perror("ioctl(EVL_HECIOC_SET_CPU)");

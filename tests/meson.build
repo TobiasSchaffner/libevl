@@ -16,6 +16,7 @@ test_programs = [
     'fpu-preload',
     'fpu-stress',
     'heap-torture',
+    'hectic',
     'mapfd',
     'monitor-deadlock',
     'monitor-deboost-stress',

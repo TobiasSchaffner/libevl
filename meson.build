@@ -81,7 +81,6 @@ meson.add_install_script(post_install)
 
 subdir('include')
 subdir('lib')
-subdir('benchmarks')
 subdir('latmus')
 subdir('utils')
 subdir('tests')
