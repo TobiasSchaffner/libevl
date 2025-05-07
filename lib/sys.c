@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <memory.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <evl/sys.h>
@@ -96,6 +97,7 @@ int evl_create_element(const char *type, const char *name,
 		name++;
 	}
 
+	memset(&clone, 0, sizeof(clone)); /* To please valgrind.. */
 	clone.name_ptr = __evl_ptr64(name);
 	clone.attrs_ptr = __evl_ptr64(attrs);
 	clone.clone_flags = clone_flags;
