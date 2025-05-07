@@ -75,7 +75,7 @@
 #include <evl/clock.h>
 #include <evl/proxy.h>
 #include <linux/spi/spidev.h>
-#include <evl/devices/spidev.h>
+#include <evl/devices/spidev-abi.h>
 
 static const char *device = "/dev/spidev0.0";
 static uint32_t mode = SPI_MODE_0;
