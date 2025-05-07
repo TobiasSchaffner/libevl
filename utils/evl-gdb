@@ -2,27 +2,31 @@
 # SPDX-License-Identifier: MIT
 
 usage() {
-   echo >&2 "usage: $(basename $1) <cmd> -- <gdb-args>"
+   echo >&2 "usage: $(basename $1) <debuggee> -- <gdb-args>"
 }
 
-args=$(getopt -n $(basename $0) 'h@' "$@")
-if [ $? -ne 0 ]; then
-   usage $0
-   exit 1
-fi
-
 help=false
+gdb_args=false
+gdb_arg_list=
+debuggee=
 
-set -- $(eval echo $args)
 for opt
 do
-case "$opt" in
-   -h) help=true;
-       shift;;
-   -@) echo "debug EVL command plugin with GDB"
-       exit 0;;
-   --) shift; break;;
-   esac
+    if test x$gdb_args = xtrue; then
+	gdb_arg_list="$gdb_arg_list $opt"
+    else
+	case "$opt" in
+	    -h) help=true;
+		shift;;
+	    --) gdb_args=true
+		shift;;
+	    -@) echo "debug EVL command plugin with GDB"
+	        exit 0;;
+	    -*) usage $0
+		exit 1;;
+	    *)  debuggee="$(eval echo $EVL_CMDDIR/evl-$opt)"
+	esac
+    fi
 done
 
 if test x$help = xtrue; then
@@ -30,14 +34,13 @@ if test x$help = xtrue; then
    exit 0
 fi
 
-if test x$1 = x; then
+if test x$debuggee = x; then
    usage $0
    exit 2
 fi
 
-program=$EVL_CMDDIR/evl-$1
-if test \! -f $program; then
-   echo >&2 "$(basename $0): cannot find $program"
+if test \! -f $debuggee; then
+   echo >&2 "$(basename $0): cannot find $debuggee"
    exit 2
 fi
 
@@ -47,4 +50,4 @@ export EVL_SYSDIR
 export EVL_TRACEDIR
 shift
 
-gdb $program "$@"
+gdb $debuggee $gdb_arg_list
