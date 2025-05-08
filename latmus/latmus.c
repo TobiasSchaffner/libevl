@@ -19,46 +19,152 @@
 #include <error.h>
 #include <errno.h>
 #include <getopt.h>
+#include <pthread.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <evl/evl.h>
-#include <evl/signal.h>
+#include <evl/signal-abi.h>
+#include "latmus.h"
+#include "stats.h"
 #include "timer.h"
 #include "gpio.h"
+#include "net.h"
 #include "tuning.h"
 
-#define OOB_GPIO_LAT    1
-#define INBAND_GPIO_LAT 2
+int test_irqlat = 0, test_klat = 0,
+	test_ulat = 0, test_sirqlat = 0,
+	test_gpiolat = 0, test_netlat = 0;
 
-static int test_irqlat, test_klat,
-	test_ulat, test_sirqlat,
-	test_gpiolat;
+cpu_set_t isolated_cpus;
+
+sigset_t sigmask;
+
+int verbosity = 1,
+	abort_threshold = 0;
+
+time_t timeout = 0;
+
+bool abort_on_switch = true,
+	c_state_restricted = false;
+
+int context_type = EVL_LAT_USER;
+
+unsigned int spurious_inband_switches = 0;
+
+time_t start_time = 0;
+
+FILE *plot_fp = NULL;
+
+int data_lines = 21;
+
+size_t packet_size = 0;	/* Pick default. */
+
+int responder_priority = -1;
+
+int responder_cpu = -1;
+
+int responder_cpu_state = 0;
+
+unsigned int period_usecs = 1000; /* 1ms */
+
+const char *peer_host = NULL;
+
+const char *local_netif = NULL;
+
+const char *context_labels[] = {
+	[EVL_LAT_IRQ] = "irq",
+	[EVL_LAT_SIRQ] = "sirq",
+	[EVL_LAT_KERN] = "kernel",
+	[EVL_LAT_USER] = "user",
+	[EVL_LAT_OOB_GPIO] = "oob-gpio",
+	[EVL_LAT_INBAND_GPIO] = "inband-gpio",
+	[EVL_LAT_NET] = "net",
+};
+
+int latmus_fd = -1;
 
 static bool reset, background;
 
 static bool force_cpu;
 
-#define short_optlist "ikusrqbKmtp:A:T:v::l:g::H:P:c:Z:z:I:O:C:"
+#define short_optlist "ikusrqbKmtp:A:T:v::l:g::H:P:c:Z:z:I:O:C:E:S:nL:"
 
 static const struct option options[] = {
 	{
 		.name = "irq",
 		.has_arg = no_argument,
-		.val = 'i'
+		.flag = &test_irqlat,
+		.val = 1,
 	},
 	{
 		.name = "kernel",
 		.has_arg = no_argument,
-		.val = 'k'
+		.flag = &test_klat,
+		.val = 1,
 	},
 	{
 		.name = "user",
 		.has_arg = no_argument,
-		.val = 'u'
+		.flag = &test_ulat,
+		.val = 1,
 	},
 	{
 		.name = "sirq",
 		.has_arg = no_argument,
-		.val = 's'
+		.flag = &test_sirqlat,
+		.val = 1,
+	},
+	{
+		.name = "oob-gpio",
+		.has_arg = required_argument,
+		.val = 'Z',
+	},
+	{
+		.name = "inband-gpio",
+		.has_arg = required_argument,
+		.val = 'z',
+	},
+	{
+		.name = "net",
+		.has_arg = required_argument,
+		.val = 'E',
+	},
+	{
+		.name = "packet-size",
+		.has_arg = required_argument,
+		.val = 'S'
+	},
+	{
+		.name = "local-ip",
+		.has_arg = required_argument,
+		.val = 'L'
+	},
+	{
+		.name = "no-check",
+		.has_arg = no_argument,
+		.val = 'n',
+	},
+	{
+		.name = "gpio-in",
+		.has_arg = required_argument,
+		.val = 'I',
+	},
+	{
+		.name = "gpio-out",
+		.has_arg = required_argument,
+		.val = 'O',
+	},
+	{
+		.name = "measure",
+		.has_arg = no_argument,
+		.val = 'm',
+	},
+	{
+		.name = "tune",
+		.has_arg = no_argument,
+		.val = 't',
 	},
 	{
 		.name = "reset",
@@ -79,16 +185,6 @@ static const struct option options[] = {
 		.name = "keep-going",
 		.has_arg = no_argument,
 		.val = 'K'
-	},
-	{
-		.name = "measure",
-		.has_arg = no_argument,
-		.val = 'm',
-	},
-	{
-		.name = "tune",
-		.has_arg = no_argument,
-		.val = 't',
 	},
 	{
 		.name = "period",
@@ -140,26 +236,6 @@ static const struct option options[] = {
 		.has_arg = required_argument,
 		.val = 'C',
 	},
-	{
-		.name = "oob-gpio",
-		.has_arg = required_argument,
-		.val = 'Z',
-	},
-	{
-		.name = "inband-gpio",
-		.has_arg = required_argument,
-		.val = 'z',
-	},
-	{
-		.name = "gpio-in",
-		.has_arg = required_argument,
-		.val = 'I',
-	},
-	{
-		.name = "gpio-out",
-		.has_arg = required_argument,
-		.val = 'O',
-	},
 	{ /* Sentinel */ }
 };
 
@@ -208,6 +284,146 @@ static void restrict_c_state(void)
 
 	if (write(fd, &val, sizeof(val) == sizeof(val)))
 		c_state_restricted = true;
+}
+
+void notify_start(int delay)
+{
+	if (timeout)
+		alarm(timeout + delay);
+}
+
+void create_responder(pthread_t *tid, int priority, void *(*responder)(void *))
+{
+	struct sched_param param;
+	pthread_attr_t attr;
+	int ret;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	param.sched_priority = priority;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setstacksize(&attr, EVL_STACK_DEFAULT);
+	ret = pthread_create(tid, &attr, responder, NULL);
+	pthread_attr_destroy(&attr);
+	if (ret)
+		error(1, ret, "sampling thread");
+}
+
+void create_logger(pthread_t *tid, void *(*logger)(void *), void *arg)
+{
+	struct sched_param param;
+	pthread_attr_t attr;
+	int ret;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+	pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
+	param.sched_priority = 0;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setstacksize(&attr, EVL_STACK_DEFAULT);
+	ret = pthread_create(tid, &attr, logger, arg);
+	pthread_attr_destroy(&attr);
+	if (ret)
+		error(1, ret, "logger thread");
+}
+
+static void do_measurement(size_t histogram_cells, bool no_check)
+{
+	const char *cpu_s = "";
+
+	/*
+	 * One and only one test is set in measurement mode (checked
+	 * while parsing options).
+	 */
+	context_type =
+		test_irqlat ? EVL_LAT_IRQ :
+		test_klat ? EVL_LAT_KERN :
+		test_sirqlat ? EVL_LAT_SIRQ :
+		test_ulat ? EVL_LAT_USER :
+		test_gpiolat == OOB_MODE ? EVL_LAT_OOB_GPIO :
+		test_gpiolat == INBAND_MODE ? EVL_LAT_INBAND_GPIO :
+		EVL_LAT_NET;
+
+	if (!(responder_cpu_state & EVL_CPU_ISOL))
+		cpu_s = " (not isolated)";
+
+	if (verbosity > 0)
+		fprintf(stderr, "warming up on CPU%d%s...\n", responder_cpu, cpu_s);
+	else
+		fprintf(stderr, "running quietly for %ld seconds on CPU%d%s\n",
+			(long)timeout, responder_cpu, cpu_s);
+
+	switch (context_type) {
+	case EVL_LAT_OOB_GPIO:
+		run_gpio_test(true, histogram_cells);
+		break;
+	case EVL_LAT_INBAND_GPIO:
+		run_gpio_test(false, histogram_cells);
+		break;
+	case EVL_LAT_NET:
+		run_net_test(no_check, histogram_cells);
+		break;
+	default:
+		run_timer_test(histogram_cells);
+	}
+
+	if (spurious_inband_switches > 0) {
+		fprintf(stderr, "\n*** WARNING: unexpected switches to in-band mode detected,\n"
+		       "             latency figures displayed are NOT reliable.\n"
+		       "             Please submit a bug report upstream.\n");
+		if (abort_on_switch) {
+			abort_on_switch = false;
+			fprintf(stderr, "-- aborting\n");
+		}
+	}
+}
+
+int find_host_ip(const char *host, struct in_addr *addr)
+{
+	struct addrinfo hints, *res;
+	int ret;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_ADDRCONFIG;
+
+	ret = getaddrinfo(host, NULL, &hints, &res);
+	if (ret)
+		return ret == EAI_SYSTEM ? -errno : -ESRCH;
+
+	*addr = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+
+	return 0;
+}
+
+int find_netif_ip(const char *netif, struct in_addr *addr)
+{
+	struct ifaddrs *ifaddrs, *ifa;
+	int ret;
+
+	ret = getifaddrs(&ifaddrs);
+	if (ret)
+		error(1, errno, "getifaddrs(%s)", netif);
+
+	for (ifa = ifaddrs; ifa; ifa = ifa->ifa_next) {
+               if (ifa->ifa_addr == NULL)
+                   continue;
+
+               if (ifa->ifa_addr->sa_family != AF_INET)
+		       continue;
+
+	       if (strcmp(ifa->ifa_name, netif))
+		       continue;
+
+	       *addr = ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+	       return 0;
+	}
+
+	return -EINVAL;
 }
 
 static void parse_cpu_list(const char *path, cpu_set_t *cpuset)
@@ -344,12 +560,16 @@ static void usage(void)
         fprintf(stderr, "-l --lines=<num>        result lines per page, 0 = no pagination [=21]\n");
         fprintf(stderr, "-H --histogram[=<nr>]   set histogram size to <nr> cells [=200]\n");
         fprintf(stderr, "-g --plot=<filename>    dump histogram data to file (gnuplot format)\n");
-        fprintf(stderr, "-Z --oob-gpio=<host>    measure EVL response time to GPIO event via <host|broadcast>\n");
-        fprintf(stderr, "-z --inband-gpio=<host> measure in-band response time to GPIO event via <host|broadcast>\n");
+        fprintf(stderr, "-z --inband-gpio=<host> measure in-band response time to GPIO event via <host|'broadcast'>\n");
+        fprintf(stderr, "-Z --oob-gpio=<host>    measure EVL response time to GPIO event via <host|'broadcast'>\n");
         fprintf(stderr, "-I --gpio-in=<spec>     input GPIO line configuration\n");
         fprintf(stderr, "   with <spec> = gpiochip-devname,pin-number[,rising-edge|falling-edge]\n");
         fprintf(stderr, "-O --gpio-out=<spec>    output GPIO line configuration\n");
         fprintf(stderr, "   with <spec> = gpiochip-devname,pin-number\n");
+        fprintf(stderr, "-E --net=<host>         measure out-of-band UDP delay talking to <host>\n");
+        fprintf(stderr, "-L --local-if=<netif>   use specified local network interface (with -E)\n");
+        fprintf(stderr, "-n --no-check           disable packet sequence check (with -E)\n");
+        fprintf(stderr, "-S --packet-size=<n>    set the UDP packet size (> 20 bytes, with -E)\n");
 }
 
 static void bad_usage(int argc, char *const argv[])
@@ -361,10 +581,12 @@ static void bad_usage(int argc, char *const argv[])
 
 int main(int argc, char *const argv[])
 {
-	int ret, c, spec, type, max_prio, lindex;
+	const char *gpio_i_specs = NULL, *gpio_o_specs = NULL;
 	const char *plot_filename = NULL;
+	bool tuning = false, no_check = false;
+	int ret, c, spec, max_prio, lindex;
+	size_t histogram_cells = 0;
 	struct sigaction sa;
-	bool tuning = false;
 	char *endptr;
 
 	opterr = 0;
@@ -377,18 +599,6 @@ int main(int argc, char *const argv[])
 		switch (c) {
 		case 0:
 			break;
-		case 'i':
-			test_irqlat = 1;
-			break;
-		case 'k':
-			test_klat = 1;
-			break;
-		case 'u':
-			test_ulat = 1;
-			break;
-		case 's':
-			test_sirqlat = 1;
-			break;
 		case 'r':
 			reset = true;
 			break;
@@ -400,6 +610,18 @@ int main(int argc, char *const argv[])
 			break;
 		case 'K':
 			abort_on_switch = false;
+			break;
+		case 'z':
+		case 'Z':
+			test_netlat = (c == 'Z' ? OOB_MODE : INBAND_MODE);
+			peer_host = optarg;
+			break;
+		case 'E':
+			test_netlat = true;
+			peer_host = optarg;
+			break;
+		case 'n':
+			no_check = true;
 			break;
 		case 'm':
 			tuning = false;
@@ -473,18 +695,14 @@ int main(int argc, char *const argv[])
 			if (responder_cpu < 0 || responder_cpu >= CPU_SETSIZE)
 				error(1, EINVAL, "invalid CPU number");
 			break;
-		case 'z':
-		case 'Z':
-			test_gpiolat = (c == 'z') + 1;
-			find_latmon_ip(optarg);
-			break;
 		case 'I':
-			gpio_infd = parse_gpio_spec(optarg, &gpio_inpin,
-					&gpio_hdinflags, &gpio_evinflags);
+			gpio_i_specs = optarg;
 			break;
 		case 'O':
-			gpio_outfd = parse_gpio_spec(optarg, &gpio_outpin,
-					&gpio_hdoutflags, NULL);
+			gpio_o_specs = optarg;
+			break;
+		case 'L':
+			local_netif = optarg;
 			break;
 		case '?':
 		default:
@@ -498,7 +716,8 @@ int main(int argc, char *const argv[])
 		return 1;
 	}
 
-	determine_responder_cpu(test_gpiolat == INBAND_GPIO_LAT);
+	determine_responder_cpu(test_gpiolat == INBAND_MODE ||
+				test_netlat == INBAND_MODE);
 
 	setlinebuf(stdout);
 	setlinebuf(stderr);
@@ -513,10 +732,22 @@ int main(int argc, char *const argv[])
 		verbosity = 0;
 	}
 
-	if (tuning && (plot_filename || plot_fp)) {
-		fprintf(stderr, "--plot implies --measure, ignoring --plot\n");
-		plot_filename = NULL;
-		plot_fp = NULL;
+	if (plot_filename || plot_fp) {
+		if (tuning) {
+			fprintf(stderr, "--plot implies --measure only, ignoring --plot\n");
+			plot_filename = NULL;
+			plot_fp = NULL;
+		} else if (plot_filename) {
+			if (!access(plot_filename, F_OK))
+				error(1, EINVAL, "declining to overwrite %s",
+					plot_filename);
+			plot_fp = fopen(plot_filename, "w");
+			if (!plot_fp)
+				error(1, errno, "cannot open %s for writing",
+					plot_filename);
+			if (histogram_cells == 0)
+				histogram_cells = 200;
+		}
 	}
 
 	if (background) {
@@ -540,29 +771,23 @@ int main(int argc, char *const argv[])
 	sa.sa_flags = SA_SIGINFO | SA_RESTART;
 	sigaction(SIGDEBUG, &sa, NULL);
 
-	spec = test_irqlat || test_klat || test_ulat || test_sirqlat || test_gpiolat;
+	spec = test_irqlat || test_klat || test_ulat || test_sirqlat || test_gpiolat || test_netlat;
 	if (!tuning) {
 		if (!spec)
 			test_ulat = 1;
 		else if (test_irqlat + test_klat + test_ulat + test_sirqlat +
-			(!!test_gpiolat) > 1)
-			error(1, EINVAL, "only one of -u, -k, -i, -s, -z or -Z "
+			(!!test_gpiolat) + (!!test_netlat) > 1)
+			error(1, EINVAL, "only one of -u, -k, -i, -s, -[Zz] or -[Ee] "
 			      "in measurement mode");
 	} else {
-		/* Default to tune for all contexts. */
+		/* Default is to tune for all timer contexts. */
 		if (!spec)
 			test_irqlat = test_klat = test_ulat = 1;
-		else if (test_sirqlat || test_gpiolat)
-			error(1, EINVAL, "-s/-z and -t are mutually exclusive");
+		else if (test_sirqlat || test_gpiolat || test_netlat)
+			error(1, EINVAL, "-s/-[Zz]/-[Ee] and -t are mutually exclusive");
 	}
 
-	if (test_gpiolat != INBAND_GPIO_LAT) {
-		ret = evl_init();
-		if (ret)
-			error(1, -ret, "evl_init()");
-	}
-
-	if (!test_gpiolat) {
+	if (!(test_gpiolat || test_netlat)) {
 		latmus_fd = open("/dev/latmus", O_RDWR);
 		if (latmus_fd < 0)
 			error(1, errno, "cannot open latmus device");
@@ -573,31 +798,23 @@ int main(int argc, char *const argv[])
 				error(1, errno, "reset failed");
 		}
 	} else {
-		if (gpio_infd < 0 || gpio_outfd < 0)
-			error(1, EINVAL, "-[zZ] require -I, -O for GPIO settings");
+		if (test_gpiolat && (!gpio_i_specs || !gpio_o_specs))
+			error(1, EINVAL, "-[zZ] requires -I, -O for GPIO settings");
+
+		if (test_netlat && !local_netif)
+			error(1, EINVAL, "-[eE] requires -L<netif> to specify a local interface");
 	}
+
+	if (responder_priority < 0 && !(test_irqlat || test_sirqlat))
+		responder_priority = test_netlat ? 10 : 98;
 
 	time(&start_time);
 
 	if (!tuning) {
-		if (plot_filename) {
-			if (!access(plot_filename, F_OK))
-				error(1, EINVAL, "declining to overwrite %s",
-				      plot_filename);
-			plot_fp = fopen(plot_filename, "w");
-			if (plot_fp == NULL)
-				error(1, errno, "cannot open %s for writing",
-				      plot_filename);
-		}
-		type = test_irqlat ? EVL_LAT_IRQ : test_klat ?
-			EVL_LAT_KERN : test_sirqlat ? EVL_LAT_SIRQ :
-			test_ulat ? EVL_LAT_USER :
-			EVL_LAT_LAST + test_gpiolat;
-		do_measurement(type, !(test_irqlat || test_sirqlat),
-			test_gpiolat == OOB_GPIO_LAT);
+		do_measurement(histogram_cells, no_check);
 	} else {
 		if (verbosity)
-			printf("== latmus started for core tuning, "
+			printf("== latmus is now tuning the core timer, "
 			       "period=%d microseconds (may take a while)\n",
 			       period_usecs);
 

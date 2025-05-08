@@ -14,15 +14,22 @@
 #include <stdint.h>
 #include <string.h>
 #include <signal.h>
+#include <pthread.h>
 #include <sys/ioctl.h>
 #include <evl/thread.h>
 #include <evl/clock.h>
 #include <evl/xbuf.h>
+#include "latmus.h"
+#include "stats.h"
 #include "timer.h"
 
 static int lat_xfd = -1;
 
 static struct latmus_measurement last_bulk;
+
+static struct statistics statistics;
+
+static pthread_t logger;
 
 void *timer_responder(void *arg)
 {
@@ -54,7 +61,7 @@ void *timer_responder(void *arg)
 	return NULL;
 }
 
-void *timer_test_sitter(void *arg)
+static void *timer_test_sitter(void *arg)
 {
 	struct latmus_measurement_result mr;
 	struct latmus_result result;
@@ -69,13 +76,12 @@ void *timer_test_sitter(void *arg)
 		error(1, -ret, "evl_attach_self() failed");
 
 	mr.last_ptr = (__u64)(uintptr_t)&last_bulk;
-	mr.histogram_ptr = (__u64)(uintptr_t)histogram;
-	mr.len = histogram ? histogram_cells * sizeof(int32_t) : 0;
-
+	mr.histogram_ptr = (__u64)(uintptr_t)statistics.histogram;
+	mr.len = statistics.h_cells * sizeof(int32_t);
 	result.data_ptr = (__u64)(uintptr_t)&mr;
 	result.len = sizeof(mr);
 
-	notify_start();
+	notify_start(1); /* +1 warm-up time */
 
 	/* Run test until signal. */
 	ret = oob_ioctl(latmus_fd, EVL_LATIOC_RUN, &result);
@@ -87,6 +93,7 @@ void *timer_test_sitter(void *arg)
 
 static void *xbuf_logger_thread(void *arg)
 {
+	struct statistics *st = arg;
 	struct latmus_measurement meas;
 	ssize_t ret, round = 0;
 
@@ -94,26 +101,33 @@ static void *xbuf_logger_thread(void *arg)
 		ret = read(lat_xfd, &meas, sizeof(meas));
 		if (ret != sizeof(meas))
 			break;
-		log_results(&meas, round++);
+		log_results(st, &meas, round++);
 	}
-
-	/* Nobody waits for logger_done in timer mode. */
 
 	return NULL;
 }
 
-void setup_measurement_on_timer(void)
+void run_timer_test(size_t histogram_cells)
 {
+	struct statistics statistics = {
+		.ops = {
+			.more_data = more_timer_data,
+			.wrap_data_page = wrap_timer_data_page,
+			.print_summary = print_timer_summary,
+		},
+	};
+	pthread_t responder, sitter;
 	struct latmus_setup setup;
 	pthread_attr_t attr;
-	pthread_t sitter;
+	time_t duration;
 	int ret, sig;
 
 	lat_xfd = evl_create_xbuf(1024, 0, 0, "lat-data:%d", getpid());
 	if (lat_xfd < 0)
 		error(1, -lat_xfd, "cannot create xbuf");
 
-	create_logger(&logger, xbuf_logger_thread, NULL);
+	init_statistics("timer", &statistics, histogram_cells);
+	create_logger(&logger, xbuf_logger_thread, &statistics);
 
 	memset(&setup, 0, sizeof(setup));
 	setup.type = context_type;
@@ -121,12 +135,12 @@ void setup_measurement_on_timer(void)
 	setup.priority = responder_priority;
 	setup.cpu = responder_cpu;
 	setup.u.measure.xfd = lat_xfd;
-	setup.u.measure.hcells = histogram ? histogram_cells : 0;
+	setup.u.measure.hcells = statistics.h_cells;
 	ret = ioctl(latmus_fd, EVL_LATIOC_MEASURE, &setup);
 	if (ret)
 		error(1, errno, "measurement setup failed");
 
-	if (context_type == EVL_LAT_USER)
+	if (test_ulat)
 		create_responder(&responder, responder_priority, timer_responder);
 
 	pthread_attr_init(&attr);
@@ -139,6 +153,10 @@ void setup_measurement_on_timer(void)
 	sigwait(&sigmask, &sig);
 	pthread_cancel(sitter);
 	pthread_join(sitter, NULL);
+	pthread_cancel(responder);
+	pthread_join(responder, NULL);
+	pthread_cancel(logger);
+	pthread_join(logger, NULL);
 
 	/*
 	 * Add results from the last incomplete bulk once the sitter
@@ -147,6 +165,79 @@ void setup_measurement_on_timer(void)
 	 * data.
 	 */
 	if (last_bulk.samples > 0)
-		__log_results(&last_bulk);
+		__log_results(&statistics, &last_bulk);
+
+	duration = time(NULL) - start_time - 1; /* -1s warm-up time */
+	consume_statistics(&statistics, 1, duration);
 }
 
+int more_timer_data(struct statistics *st,
+		const struct latmus_measurement *meas)
+{
+	double min, avg, max, best, worst;
+	int ret = 0;
+
+	min = (double)meas->min_lat / 1000.0;
+	avg = (double)(meas->sum_lat / (int)meas->samples) / 1000.0;
+	max = (double)meas->max_lat / 1000.0;
+	best = (double)st->all_minlat / 1000.0;
+	worst = (double)st->all_maxlat / 1000.0;
+
+	/*
+	 * A trivial check on the reported values, so that we detect
+	 * and stop on obviously inconsistent results.
+	 */
+	if (min > max || min > avg || avg > max ||
+		min > worst || max > worst || avg > worst ||
+		best > worst || worst < best) {
+		ret = -EINVAL;
+		verbosity = 1;
+	}
+
+	if (verbosity > 0)
+		printf("RTD|%11.3f|%11.3f|%11.3f|%8d|%6u|%11.3f|%11.3f\n",
+			min, avg, max,
+			st->all_overruns, spurious_inband_switches,
+			best, worst);
+	return ret;
+}
+
+void wrap_timer_data_page(struct statistics *st, unsigned int round)
+{
+	time_t now, dt;
+
+	time(&now);
+	dt = now - start_time - 1; /* -1s warm-up time */
+	printf("RTT|  %.2ld:%.2ld:%.2ld  (%s, %u us period,",
+		(long)(dt / 3600), (long)((dt / 60) % 60), (long)(dt % 60),
+		context_labels[context_type], period_usecs);
+	if (responder_priority != -1)
+		printf(" priority %d,", responder_priority);
+	printf(" CPU%d%s)\n",
+		responder_cpu,
+		responder_cpu_state & EVL_CPU_ISOL ? "" : "-noisol");
+	printf("RTH|%11s|%11s|%11s|%8s|%6s|%11s|%11s\n",
+		"----lat min", "----lat avg",
+		"----lat max", "-overrun", "---msw",
+		"---lat best", "--lat worst");
+}
+
+void print_timer_summary(struct statistics *st, time_t duration)
+{
+	time_t t = timeout ?: duration;
+
+	if (st->all_samples == 0)
+		return;
+
+	printf("---|-----------|-----------|-----------|--------"
+		"|------|-----------------------\n"
+		"RTS|%11.3f|%11.3f|%11.3f|%8d|%6u|    "
+		"%.2ld:%.2ld:%.2ld/%.2ld:%.2ld:%.2ld\n",
+		(double)st->all_minlat / 1000.0,
+		(double)(st->all_sum / st->all_samples) / 1000.0,
+		(double)st->all_maxlat / 1000.0,
+		st->all_overruns, spurious_inband_switches,
+		(long)(duration / 3600), (long)((duration / 60) % 60),
+		(long)(duration % 60), (long)(duration / 3600),
+		(long)((t / 60) % 60), (long)(t % 60));
+}

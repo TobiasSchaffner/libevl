@@ -11,9 +11,12 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+#include <pthread.h>
 #include <sys/ioctl.h>
 #include <evl/syscall.h>
-#include <evl/devices/latmus.h>
+#include "latmus.h"
+#include "stats.h"
+#include "timer.h"
 #include "tuning.h"
 
 void do_tuning(int type)
@@ -44,7 +47,7 @@ void do_tuning(int type)
 
 	pthread_sigmask(SIG_UNBLOCK, &sigmask, NULL);
 
-	notify_start();
+	notify_start(1); /* +1 warm-up time */
 
 	result.data_ptr = (__u64)(uintptr_t)&gravity;
 	result.len = sizeof(gravity);

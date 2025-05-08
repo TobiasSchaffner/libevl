@@ -3,11 +3,12 @@
 latmon_incdir = include_directories(['.', 'zephyr/latmon/src'])
 
 latmus_sources = [
-       'latmus.c',
-       'latency.c',
-       'tuning.c',
-       'timer.c',
        'gpio.c',
+       'latmus.c',
+       'net.c',
+       'stats.c',
+       'timer.c',
+       'tuning.c',
 ]
 
 executable('latmus',
