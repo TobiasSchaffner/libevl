@@ -27,13 +27,21 @@ struct oob_msghdr {
 extern "C" {
 #endif
 
-ssize_t oob_recvmsg(int efd, struct oob_msghdr *msghdr,
+ssize_t oob_recvmsg(int sockfd, struct oob_msghdr *msghdr,
 		    const struct timespec *timeout,
 		    int flags);
 
-ssize_t oob_sendmsg(int efd, const struct oob_msghdr *msghdr,
+ssize_t oob_sendmsg(int sockfd, const struct oob_msghdr *msghdr,
 		    const struct timespec *timeout,
 		    int flags);
+
+int oob_setsockopt(int sockfd, int level, int optname,
+		const void *optval,
+		socklen_t optlen);
+
+int oob_getsockopt(int sockfd, int level, int optname,
+		void *optval,
+		socklen_t *optlen);
 
 #ifdef __cplusplus
 }

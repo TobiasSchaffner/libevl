@@ -21,7 +21,7 @@
 
 static const struct timespec zerotime;
 
-ssize_t oob_recvmsg(int s, struct oob_msghdr *msghdr,
+ssize_t oob_recvmsg(int sockfd, struct oob_msghdr *msghdr,
 		const struct timespec *timeout,
 		int flags)
 {
@@ -40,7 +40,7 @@ ssize_t oob_recvmsg(int s, struct oob_msghdr *msghdr,
 	u_msghdr.timeout = timeout ? *__evl_ktimespec(timeout, kts) :
 		*__evl_ktimespec(&zerotime, kts);
 
-	ret = oob_ioctl(s, EVL_SOCKIOC_RECVMSG, &u_msghdr);
+	ret = oob_ioctl(sockfd, EVL_SOCKIOC_RECVMSG, &u_msghdr);
 	if (ret)
 		return -errno;
 
@@ -51,7 +51,7 @@ ssize_t oob_recvmsg(int s, struct oob_msghdr *msghdr,
 	return (__ssize_t)u_msghdr.count;
 }
 
-ssize_t oob_sendmsg(int s, const struct oob_msghdr *msghdr,
+ssize_t oob_sendmsg(int sockfd, const struct oob_msghdr *msghdr,
 		const struct timespec *timeout,
 		int flags)
 {
@@ -70,9 +70,37 @@ ssize_t oob_sendmsg(int s, const struct oob_msghdr *msghdr,
 	u_msghdr.timeout = timeout ? *__evl_ktimespec(timeout, kts) :
 		*__evl_ktimespec(&zerotime, kts);
 
-	ret = oob_ioctl(s, EVL_SOCKIOC_SENDMSG, &u_msghdr);
+	ret = oob_ioctl(sockfd, EVL_SOCKIOC_SENDMSG, &u_msghdr);
 	if (ret)
 		return -errno;
 
 	return (__ssize_t)u_msghdr.count;
+}
+
+int oob_setsockopt(int sockfd, int level, int optname,
+		const void *optval,
+		socklen_t optlen)
+{
+	struct evl_net_sockopt opt;
+
+	opt.level = level;
+	opt.option = optname;
+	opt.optval_ptr = __evl_ptr64(optval);
+	opt.optlen_ptr = __evl_ptr64(&optlen);
+
+	return oob_ioctl(sockfd, EVL_SOCKIOC_SETOPT, &opt);
+}
+
+int oob_getsockopt(int sockfd, int level, int optname,
+		void *optval,
+		socklen_t *optlen)
+{
+	struct evl_net_sockopt opt;
+
+	opt.level = level;
+	opt.option = optname;
+	opt.optval_ptr = __evl_ptr64(optval);
+	opt.optlen_ptr = __evl_ptr64(optlen);
+
+	return oob_ioctl(sockfd, EVL_SOCKIOC_GETOPT, &opt);
 }
