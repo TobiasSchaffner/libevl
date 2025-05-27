@@ -15,7 +15,7 @@
 #include <time.h>
 #include <evl/evl.h>
 #include <evl/thread.h>
-#include <evl/signal.h>
+#include <evl/signal-abi.h>
 #include "helpers.h"
 
 static int *blunder, received;

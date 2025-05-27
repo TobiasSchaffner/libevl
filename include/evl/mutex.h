@@ -9,7 +9,7 @@
 
 #include <time.h>
 #include <evl/atomic.h>
-#include <evl/types.h>
+#include <evl/types-abi.h>
 #include <evl/monitor-abi.h>
 #include <evl/factory-abi.h>
 

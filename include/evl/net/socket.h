@@ -10,7 +10,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <evl/fcntl.h>
+#include <evl/fcntl-abi.h>
 #include <evl/net/socket-abi.h>
 
 struct oob_msghdr {

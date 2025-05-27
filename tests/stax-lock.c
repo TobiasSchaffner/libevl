@@ -25,7 +25,7 @@
 #include <evl/clock.h>
 #include <evl/atomic.h>
 #include <evl/proxy.h>
-#include <evl/devices/hectic.h>
+#include <evl/devices/hectic-abi.h>
 #include "helpers.h"
 
 #define STAX_CONCURRENCY  8

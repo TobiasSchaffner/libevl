@@ -13,7 +13,7 @@
 #include <sched.h>
 #include <evl/syscall.h>
 #include <evl/compat.h>
-#include <evl/signal.h>
+#include <evl/signal-abi.h>
 #include <evl/thread-abi.h>
 #include <evl/sched-abi.h>
 #include <evl/factory-abi.h>

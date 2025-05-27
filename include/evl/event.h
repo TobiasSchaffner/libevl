@@ -10,8 +10,8 @@
 #include <time.h>
 #include <linux/types.h>
 #include <evl/atomic.h>
-#include <evl/types.h>
 #include <evl/mutex.h>
+#include <evl/types-abi.h>
 #include <evl/monitor-abi.h>
 #include <evl/clock-abi.h>
 

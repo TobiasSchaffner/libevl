@@ -28,7 +28,7 @@
 #include <evl/evl.h>
 #include <evl/sys.h>
 #include <asm/evl/fptest.h>
-#include <evl/devices/hectic.h>
+#include <evl/devices/hectic-abi.h>
 #include "helpers.h"
 
 #define OOBCPUS_LIST  "/sys/devices/virtual/evl/control/cpus"
