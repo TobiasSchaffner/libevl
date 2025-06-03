@@ -9,6 +9,7 @@
 
 #include <time.h>
 #include <linux/types.h>
+#include <evl/compiler.h>
 #include <evl/atomic.h>
 #include <evl/mutex.h>
 #include <evl/types-abi.h>
@@ -60,10 +61,10 @@ extern "C" {
 
 int evl_create_event(struct evl_event *evt,
 		int clockfd, int flags,
-		const char *fmt, ...);
+		const char *fmt, ...) __check_printf(4, 5);
 
 int evl_open_event(struct evl_event *evt,
-		const char *fmt, ...);
+		const char *fmt, ...) __check_printf(2, 3);
 
 int evl_wait_event(struct evl_event *evt,
 		struct evl_mutex *mutex);

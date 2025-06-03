@@ -8,6 +8,7 @@
 #define _EVL_MUTEX_H
 
 #include <time.h>
+#include <evl/compiler.h>
 #include <evl/atomic.h>
 #include <evl/types-abi.h>
 #include <evl/monitor-abi.h>
@@ -69,10 +70,10 @@ extern "C" {
 
 int evl_create_mutex(struct evl_mutex *mutex,
 		int clockfd, unsigned int ceiling, int flags,
-		const char *fmt, ...);
+		const char *fmt, ...) __check_printf(5, 6);
 
 int evl_open_mutex(struct evl_mutex *mutex,
-		const char *fmt, ...);
+		const char *fmt, ...) __check_printf(2, 3);
 
 int evl_lock_mutex(struct evl_mutex *mutex);
 

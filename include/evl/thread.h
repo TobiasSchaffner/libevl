@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <sched.h>
 #include <evl/syscall.h>
+#include <evl/compiler.h>
 #include <evl/compat.h>
 #include <evl/signal-abi.h>
 #include <evl/thread-abi.h>
@@ -33,7 +34,7 @@
 extern "C" {
 #endif
 
-int evl_attach_thread(int flags, const char *fmt, ...);
+int evl_attach_thread(int flags, const char *fmt, ...) __check_printf(2, 3);
 
 int evl_detach_thread(int flags);
 

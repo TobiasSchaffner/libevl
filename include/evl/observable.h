@@ -9,6 +9,7 @@
 
 #include <time.h>
 #include <stdint.h>
+#include <evl/compiler.h>
 #include <evl/syscall.h>
 #include <evl/observable-abi.h>
 #include <evl/factory-abi.h>
@@ -28,7 +29,7 @@ struct evl_notification {
 extern "C" {
 #endif
 
-int evl_create_observable(int flags, const char *fmt, ...);
+int evl_create_observable(int flags, const char *fmt, ...) __check_printf(2, 3);
 
 int evl_update_observable(int ofd, const struct evl_notice *ntc,
 			int nr);

@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <linux/types.h>
 #include <stdio.h>
+#include <evl/compiler.h>
 #include <evl/proxy-abi.h>
 #include <evl/factory-abi.h>
 
@@ -24,7 +25,7 @@ extern "C" {
 
 int evl_create_proxy(int targetfd, size_t bufsz,
 		size_t granularity, int flags,
-		const char *fmt, ...);
+		const char *fmt, ...) __check_printf(5, 6);
 
 ssize_t evl_write_proxy(int proxyfd,
 		const void *buf, size_t count);
@@ -36,11 +37,11 @@ ssize_t evl_vprint_proxy(int proxyfd,
 			const char *fmt, va_list ap);
 
 ssize_t evl_print_proxy(int proxyfd,
-			const char *fmt, ...);
+			const char *fmt, ...) __check_printf(2, 3);
 
-ssize_t evl_printf(const char *fmt, ...);
+ssize_t evl_printf(const char *fmt, ...) __check_printf(1, 2);
 
-ssize_t evl_eprintf(const char *fmt, ...);
+ssize_t evl_eprintf(const char *fmt, ...) __check_printf(1, 2);
 
 int evl_stdout(void);
 

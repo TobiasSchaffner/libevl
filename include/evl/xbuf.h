@@ -8,6 +8,7 @@
 #define _EVL_XBUF_H
 
 #include <sys/types.h>
+#include <evl/compiler.h>
 #include <evl/syscall.h>
 #include <evl/xbuf-abi.h>
 #include <evl/factory-abi.h>
@@ -21,7 +22,7 @@ extern "C" {
 #endif
 
 int evl_create_xbuf(size_t i_bufsz, size_t o_bufsz,
-		int flags, const char *fmt, ...);
+		int flags, const char *fmt, ...) __check_printf(4, 5);
 
 #ifdef __cplusplus
 }

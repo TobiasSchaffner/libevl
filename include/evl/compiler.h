@@ -72,6 +72,10 @@
 #define __align_to(__size, __al)  (((__size) + (__al) - 1) & (~((__al) - 1)))
 #endif
 
+#ifndef __check_printf
+#define __check_printf(__fmtpos, __argpos)	__attribute__((__format__(printf, __fmtpos, __argpos)))
+#endif
+
 #define __lzcount(__x)					\
 	((__x) == 0 ? (int)(sizeof(__x) * __CHAR_BIT__)	\
 		: sizeof(__x) <= sizeof(int) ?		\

@@ -8,6 +8,7 @@
 #define _EVL_FLAGS_H
 
 #include <time.h>
+#include <evl/compiler.h>
 #include <evl/atomic.h>
 #include <evl/types-abi.h>
 #include <evl/monitor-abi.h>
@@ -61,10 +62,10 @@ extern "C" {
 
 int evl_create_flags(struct evl_flags *flg,
 		int clockfd, int initval, int flags,
-		const char *fmt, ...);
+		const char *fmt, ...) __check_printf(5, 6);
 
 int evl_open_flags(struct evl_flags *flg,
-		const char *fmt, ...);
+		const char *fmt, ...)  __check_printf(2, 3);
 
 int evl_close_flags(struct evl_flags *flg);
 
