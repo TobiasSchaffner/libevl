@@ -60,10 +60,10 @@ static void test_steal(bool do_steal)
 	char *name;
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(gfd, evl_new_mutex(&c.lock, name));
+	__Tcall_assert(gfd, evl_new_mutex(&c.lock, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 1);
-	__Tcall_assert(sfd, evl_new_sem(&c.start, name));
+	__Tcall_assert(sfd, evl_new_sem(&c.start, "%s", name));
 	c.acquired = false;
 
 	new_thread(&contender, SCHED_FIFO, LOW_PRIO, victim, &c);

@@ -45,11 +45,11 @@ int main(int argc, char *argv[])
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
 	__Tcall_assert(gfd, evl_create_mutex(&lock_medium, EVL_CLOCK_MONOTONIC,
-					MEDIUM_PRIO, EVL_MUTEX_NORMAL, name));
+					MEDIUM_PRIO, EVL_MUTEX_NORMAL, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 1);
 	__Tcall_assert(gfd, evl_create_mutex(&lock_high, EVL_CLOCK_MONOTONIC,
-					HIGH_PRIO, EVL_MUTEX_NORMAL, name));
+					HIGH_PRIO, EVL_MUTEX_NORMAL, "%s", name));
 
 	__Tcall_assert(ret, evl_lock_mutex(&lock_medium));
 	/* Commit PP, expected switch to medium priority. */

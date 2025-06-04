@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 			error(1, errno, "oob_sendmsg() failed");
 
 		if (verbosity > 1)
-			evl_printf("  .. ICMP reply sent: %d\n", count);
+			evl_printf("  .. ICMP reply sent: %zd\n", count);
 		n++;
 	}
 

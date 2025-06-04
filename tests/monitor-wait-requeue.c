@@ -66,10 +66,10 @@ int main(int argc, char *argv[])
 	__Tcall_assert(tfd, evl_attach_self("monitor-wait-requeued:%d", getpid()));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(gfd, evl_new_mutex(&lock, name));
+	__Tcall_assert(gfd, evl_new_mutex(&lock, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 1);
-	__Tcall_assert(sfd, evl_new_sem(&barrier, name));
+	__Tcall_assert(sfd, evl_new_sem(&barrier, "%s", name));
 
 	/*
 	 * Disable WOLI in case CONFIG_EVL_DEBUG_WOLI is set, as we

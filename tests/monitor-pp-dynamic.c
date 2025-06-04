@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
 	__Tcall_assert(gfd, evl_create_mutex(&lock, EVL_CLOCK_MONOTONIC,
-					LOW_PRIO, EVL_MUTEX_NORMAL, name));
+					LOW_PRIO, EVL_MUTEX_NORMAL, "%s", name));
 	__Tcall_assert(ret, evl_lock_mutex(&lock));
 	/* Commit PP boost, no priority change expected. */
 	__Tcall_assert(ret, evl_usleep(1000));

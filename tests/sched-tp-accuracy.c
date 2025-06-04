@@ -235,10 +235,10 @@ int main(int argc, char *argv[])
 	for (n = 0; n < 4; n++)
 		do_trace("[%d] offset = { %ld s, %ld ns }, duration = { %ld s, %ld ns }, ptid = %d",
 			n,
-			q->tp.windows[n].offset.tv_sec,
-			q->tp.windows[n].offset.tv_nsec,
-			q->tp.windows[n].duration.tv_sec,
-			q->tp.windows[n].duration.tv_nsec,
+			(long)q->tp.windows[n].offset.tv_sec,
+			(long)q->tp.windows[n].offset.tv_nsec,
+			(long)q->tp.windows[n].duration.tv_sec,
+			(long)q->tp.windows[n].duration.tv_nsec,
 			q->tp.windows[n].ptid);
 	free(q);
 

@@ -81,9 +81,9 @@ int main(int argc, char *argv[])
 
 	__Tcall_assert(ret, evl_init());
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(i_ffd, evl_new_flags(&i_flags, name));
+	__Tcall_assert(i_ffd, evl_new_flags(&i_flags, "%s", name));
 	name = get_unique_name(EVL_MONITOR_DEV, 1);
-	__Tcall_assert(o_ffd, evl_new_flags(&o_flags, name));
+	__Tcall_assert(o_ffd, evl_new_flags(&o_flags, "%s", name));
 
 	new_thread(&i_receiver, SCHED_OTHER, 0, inband_receiver, NULL);
 	__Tcall_assert(ret, sem_wait(&i_start));

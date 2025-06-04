@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	__Tcall_assert(tfd, evl_attach_self("rwlock-rd:%d", getpid()));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(sfd, evl_new_sem(&sem, name));
+	__Tcall_assert(sfd, evl_new_sem(&sem, "%s", name));
 
 	/* Get a rwlock, lock it for read immediately. */
 	__Texpr_assert(evl_new_rwlock(&rwlock) == 0);

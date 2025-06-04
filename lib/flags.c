@@ -133,7 +133,7 @@ static int check_sanity(struct evl_flags *flg)
 				flg->u.uninit.clockfd,
 				flg->u.uninit.initval,
 				flg->u.uninit.flags,
-				flg->u.uninit.name);
+				"%s", flg->u.uninit.name);
 		return efd < 0 ? efd : 0;
 	}
 

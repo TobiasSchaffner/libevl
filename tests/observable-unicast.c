@@ -114,8 +114,8 @@ static void *worker_thread(void *arg)
 		__Texpr_assert((ret == -EBADF) || ret == 1);
 		if (ret < 0)
 			break;
-		do_trace("[%d] msg from pid=%d, at %ld.%ld, tag=%u, state=%llx",
-			serial, nf.issuer, nf.date.tv_sec, nf.date.tv_nsec,
+		do_trace("[%d] msg from pid=%d, at %lld.%ld, tag=%u, state=%llx",
+			serial, nf.issuer, (long long)nf.date.tv_sec, nf.date.tv_nsec,
 			nf.tag, nf.event.lval);
 		__Texpr_assert(next_states[serial].tag == nf.tag);
 		__Texpr_assert(next_states[serial].event.lval == nf.event.lval);

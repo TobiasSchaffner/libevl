@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 	__Tcall_assert(tfd, evl_attach_self("monitor-try-main:%d", getpid()));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(mfd, evl_new_mutex(&lock, name));
+	__Tcall_assert(mfd, evl_new_mutex(&lock, "%s", name));
 
 	for (n = 0; n < NR_CONTENDERS; n++)
 		new_thread(contenders + n, SCHED_FIFO, LOW_PRIO,

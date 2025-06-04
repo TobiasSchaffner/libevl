@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 	for (n = 0; n < NR_FLAGS; n++) {
 		name = get_unique_name(EVL_MONITOR_DEV, n);
 		__Tcall_assert(test_flags[n].efd,
-			evl_new_flags(&test_flags[n].flags, name));
+			evl_new_flags(&test_flags[n].flags, "%s", name));
 		__Tcall_assert(ret, evl_add_pollfd(pollfd, test_flags[n].efd,
 					POLLIN, evl_ptrval(&test_flags[n])));
 	}

@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	__Tcall_assert(tfd, evl_attach_self("/poller-read:%d", getpid()));
 
 	name = get_unique_name_and_path(EVL_XBUF_DEV, 0, &path);
-	__Tcall_assert(xfd, evl_new_xbuf(1024, name));
+	__Tcall_assert(xfd, evl_new_xbuf(1024, "%s", name));
 
 	/*
 	 * We want to read any data present in the cross buffer,

@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 	__Tcall_assert(tfd, evl_attach_self("sem-close-unblock:%d", getpid()));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(sfd, evl_new_sem(&c.sem, name));
+	__Tcall_assert(sfd, evl_new_sem(&c.sem, "%s", name));
 	new_thread(&contender, SCHED_FIFO, 1, sem_contend, &c);
 
 	pthread_join(contender, NULL);

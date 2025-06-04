@@ -135,7 +135,7 @@ static int check_sanity(struct evl_sem *sem)
 				sem->u.uninit.clockfd,
 				sem->u.uninit.initval,
 				sem->u.uninit.flags,
-				sem->u.uninit.name);
+				"%s", sem->u.uninit.name);
 		return efd < 0 ? efd : 0;
 	}
 

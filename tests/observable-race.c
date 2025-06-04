@@ -120,8 +120,8 @@ static void *observer_thread(void *arg)
 	for (n = 0; ; n++) {
 		__Tcall_assert(ret, evl_read_observable(observable_fd, &nf, 1));
 		__Texpr_assert(ret == 1);
-		do_trace("[%d] msg from pid=%d, at %ld.%ld, tag=%u, state=%llx",
-			serial, nf.issuer, nf.date.tv_sec, nf.date.tv_nsec,
+		do_trace("[%d] msg from pid=%d, at %lld.%ld, tag=%u, state=%llx",
+			serial, nf.issuer, (long long)nf.date.tv_sec, nf.date.tv_nsec,
 			nf.tag, nf.event.lval);
 		if (!(n % 100)) {
 			__Tcall_assert(ret, evl_unsubscribe(observable_fd));

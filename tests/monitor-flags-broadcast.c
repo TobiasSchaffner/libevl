@@ -59,10 +59,10 @@ int main(int argc, char *argv[])
 	__Tcall_assert(tfd, evl_attach_self("monitor-flags-broadcast:%d", getpid()));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(ffd, evl_new_flags(&flags, name));
+	__Tcall_assert(ffd, evl_new_flags(&flags, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 1);
-	__Tcall_assert(sfd, evl_new_sem(&start, name));
+	__Tcall_assert(sfd, evl_new_sem(&start, "%s", name));
 
 	__Tcall_assert(pollfd, evl_new_poll());
 	__Tcall_assert(ret, evl_add_pollfd(pollfd, ffd, POLLOUT, evl_nil));

@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
 	__Tcall_assert(mfd, evl_create_mutex(
 			&lock, EVL_CLOCK_MONOTONIC,
-			0, EVL_MUTEX_RECURSIVE|EVL_CLONE_PRIVATE, name));
+			0, EVL_MUTEX_RECURSIVE|EVL_CLONE_PRIVATE, "%s", name));
 
 	__Texpr_assert(evl_lock_mutex(&lock) == 0); /* +1 */
 	__Texpr_assert(evl_unlock_mutex(&lock) == 0); /* free */

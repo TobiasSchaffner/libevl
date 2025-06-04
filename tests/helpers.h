@@ -57,7 +57,7 @@ static inline int abort_test(int status)
 		if ((__ret) >= 0)			\
 			warn_failed("%s (%d >= 0)",	\
 				__stringify(__call),	\
-				__ret);			\
+				(int)__ret);		\
 		(__ret) < 0;				\
 	})
 

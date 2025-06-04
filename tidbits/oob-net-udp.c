@@ -106,7 +106,7 @@ static void receiver(int s, struct sockaddr_in *addr, int iter)
 		evl_printf("= %zd bytes received", ret);
 		if (msghdr.msg_flags & MSG_TRUNC)
 			evl_printf(" (TRUNCATED)");
-		evl_printf(": %.*s\n", ret, tbuf);
+		evl_printf(": %.*s\n", (int)ret, tbuf);
 	}
 }
 

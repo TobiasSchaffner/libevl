@@ -56,7 +56,7 @@ static void *sem_feeder(void *arg)
 	int ret, tfd, n;
 
 	__Tcall_assert(tfd, evl_attach_self("poll-multi-sem:%d.%d",
-			getpid(), p - c));
+				getpid(), (int)(p - c)));
 
 	wait_release();
 
@@ -74,7 +74,7 @@ static void *flags_feeder(void *arg)
 	int ret, tfd, n;
 
 	__Tcall_assert(tfd, evl_attach_self("poll-multi-flags:%d.%d",
-			getpid(), p - c));
+				getpid(), (int)(p - c)));
 
 	wait_release();
 
@@ -109,10 +109,10 @@ int main(int argc, char *argv[])
 	__Tcall_assert(ret, evl_new_mutex(&lock, "poll-multi-lock:%d", getpid()));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(c[0].efd, evl_new_sem(&c[0].sem, name));
+	__Tcall_assert(c[0].efd, evl_new_sem(&c[0].sem, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 1);
-	__Tcall_assert(c[1].efd, evl_new_flags(&c[1].flags, name));
+	__Tcall_assert(c[1].efd, evl_new_flags(&c[1].flags, "%s", name));
 
 	__Tcall_assert(tmfd, evl_new_timer(EVL_CLOCK_MONOTONIC));
 

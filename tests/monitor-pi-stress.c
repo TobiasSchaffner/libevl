@@ -160,22 +160,22 @@ int main(int argc, char *argv[])
 	__Tcall_assert(tfd, evl_attach_self("monitor-pi-stress:%d", getpid()));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
-	__Tcall_assert(gfd, evl_new_mutex(&c.lock_1, name)); /* PI-implicit form. */
+	__Tcall_assert(gfd, evl_new_mutex(&c.lock_1, "%s", name)); /* PI-implicit form. */
 
 	name = get_unique_name(EVL_MONITOR_DEV, 1);
-	__Tcall_assert(gfd, evl_new_mutex(&c.lock_2, name));
+	__Tcall_assert(gfd, evl_new_mutex(&c.lock_2, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 2);
-	__Tcall_assert(gfd, evl_new_mutex(&c.lock_3, name));
+	__Tcall_assert(gfd, evl_new_mutex(&c.lock_3, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 3);
-	__Tcall_assert(evfd, evl_new_event(&c.event_1, name));
+	__Tcall_assert(evfd, evl_new_event(&c.event_1, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 4);
-	__Tcall_assert(evfd, evl_new_event(&c.event_2, name));
+	__Tcall_assert(evfd, evl_new_event(&c.event_2, "%s", name));
 
 	name = get_unique_name(EVL_MONITOR_DEV, 5);
-	__Tcall_assert(evfd, evl_new_event(&c.event_3, name));
+	__Tcall_assert(evfd, evl_new_event(&c.event_3, "%s", name));
 
 	new_thread(&t_a, SCHED_FIFO, A_PRIO, thread_a, &c);
 	new_thread(&t_b, SCHED_FIFO, B_PRIO, thread_b, &c);

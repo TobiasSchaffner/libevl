@@ -201,8 +201,8 @@ int main(int argc, char *argv[])
 	 * so that no delay is incurred.
 	 */
 	timespec_sub(&delta, &end, &begin);
-	evl_printf("transfer done in %ld s, %ld us:",
-		delta.tv_sec, delta.tv_nsec / 1000);
+	evl_printf("transfer done in %lld s, %ld us:",
+		(long long)delta.tv_sec, delta.tv_nsec / 1000);
 
 	/* Dump the contents of the input buffer. */
 	for (n = 0; n < len; n++) {

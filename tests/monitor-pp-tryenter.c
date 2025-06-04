@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
 	name = get_unique_name(EVL_MONITOR_DEV, 0);
 	__Tcall_assert(gfd, evl_create_mutex(&lock, EVL_CLOCK_MONOTONIC,
-					HIGH_PRIO, EVL_MUTEX_NORMAL, name));
+					HIGH_PRIO, EVL_MUTEX_NORMAL, "%s", name));
 
 	/* Taking the fast locking path requires running OOB. */
 	__Tcall_assert(ret, evl_switch_oob());
