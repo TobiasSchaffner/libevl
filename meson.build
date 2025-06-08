@@ -77,11 +77,11 @@ libevl_dso_version = '4.0.0'
 
 libexec_evl = get_option('libexecdir') / 'evl'
 
-meson.add_install_script(post_install)
-
 subdir('include')
 subdir('lib')
 subdir('latmus')
 subdir('utils')
 subdir('tests')
 subdir('tidbits')
+
+meson.add_install_script(post_install)
