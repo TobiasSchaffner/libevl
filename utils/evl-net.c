@@ -104,15 +104,10 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 
 static void solicit_neighbour(const char *ipaddr, bool permanent)
 {
-	struct evl_net_solicit solicit;
-	struct sockaddr_in *sin = (struct sockaddr_in *)&solicit.addr;
+	struct sockaddr addr = { 0 };
+	struct sockaddr_in *sin = (struct sockaddr_in *)&addr;
 	long ret;
 	int s;
-
-	memset(&solicit, 0, sizeof(solicit));
-	solicit.addr.sa_family = AF_INET;
-	if (permanent)
-		solicit.flags = EVL_NEIGH_PERMANENT;
 
 	if (!inet_pton(AF_INET, ipaddr, &sin->sin_addr))
 		error(1, EINVAL, "invalid IP address");
@@ -121,9 +116,11 @@ static void solicit_neighbour(const char *ipaddr, bool permanent)
 	if (s < 0)
 		error(1, errno, "cannot create out-of-band UDP socket");
 
-	ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
+	sin->sin_family = AF_INET;
+	/* sin->sin_port is unused. */
+	ret = evl_net_solicit(s, &addr,	permanent ? EVL_NEIGH_PERMANENT : 0);
 	if (ret)
-		error(1, errno, "ioctl(EVL_SOCKIOC_SOLICIT)");
+		error(1, -ret, "evl_net_solicit()");
 
 	close(s);
 }
