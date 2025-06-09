@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <netpacket/packet.h>
-#include <evl/net/socket.h>
+#include <evl/net/net.h>
 
 int main(int argc, char *argv[])
 {

@@ -23,7 +23,7 @@
 #include <evl/thread.h>
 #include <evl/clock.h>
 #include <evl/proxy.h>
-#include <evl/net/socket.h>
+#include <evl/net/net.h>
 
 static int verbosity = 1;
 
