@@ -470,7 +470,6 @@ void run_net_test(bool no_check, size_t histogram_cells)
 {
 	struct sockaddr_in peer_in = { 0 }, local_in = { 0 };
 	int ret, s, sig, n, devfd, tsflags;
-	struct evl_net_solicit solicit;
 	struct latmus_net_desc *nd;
 	struct sched_param param;
 	pthread_attr_t attr;
@@ -521,13 +520,10 @@ void run_net_test(bool no_check, size_t histogram_cells)
 	 * resolution of the peer address, and we also ask for making
 	 * the resulting entry permanent in the ARP cache.
 	 */
-	memset(&solicit, 0, sizeof(solicit));
-	solicit.addr.sa_family = AF_INET;
-	*((struct sockaddr_in *)&solicit.addr) = peer_in;
-	solicit.flags = EVL_NEIGH_PERMANENT;
-	ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
+	ret = evl_net_solicit(s, (const struct sockaddr *)&peer_in,
+			EVL_NEIGH_PERMANENT);
 	if (ret)
-		error(1, errno, "ioctl(EVL_SOCKIOC_SOLICIT)");
+		error(1, -ret, "evl_net_solicit()");
 
 	/* Enable all existing RX+TX timestamping points. */
 	tsflags = EVL_SOF_TIMESTAMPS;
