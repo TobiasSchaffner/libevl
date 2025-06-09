@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
 {
 	int tfd, s, c, mcount = 1, iter = 0, port = 42042;
 	const char *text = "Mellow sword!";
-	struct evl_net_solicit solicit;
 	struct sched_param param;
 	struct sockaddr_in addr;
 	const char *ip = NULL;
@@ -190,13 +189,10 @@ int main(int argc, char *argv[])
 		 * address via an explicit neighbour solicitation
 		 * before we start sending data.
 		 */
-		memset(&solicit, 0, sizeof(solicit));
-		solicit.addr.sa_family = AF_INET;
-		*((struct sockaddr_in *)&solicit.addr) = addr;
-		solicit.flags = EVL_NEIGH_PERMANENT;
-		ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
+		ret = evl_net_solicit(s, (const struct sockaddr *)&addr,
+				EVL_NEIGH_PERMANENT);
 		if (ret)
-			error(1, errno, "ioctl(EVL_SOCKIOC_SOLICIT)");
+			error(1, -ret, "evl_net_solicit()");
 
 		if (verbosity)
 			printf("== sender mode (=> %s:%d)\n", ip, port);
