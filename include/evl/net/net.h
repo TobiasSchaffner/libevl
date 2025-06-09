@@ -10,11 +10,15 @@
 #include <evl/net/device.h>
 #include <evl/net/socket.h>
 
+struct sockaddr;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 int evl_net_open_device(const char *ifname);
+
+int evl_net_solicit(int s, const struct sockaddr *peer, int flags);
 
 #ifdef __cplusplus
 }

@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <memory.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/errno.h>
@@ -34,4 +35,17 @@ int evl_net_open_device(const char *ifname)
 		return -errno;
 
 	return req.fd;
+}
+
+int evl_net_solicit(int s, const struct sockaddr *peer, int flags)
+{
+	struct evl_net_solicit solicit;
+	int ret;
+
+	memset(&solicit, 0, sizeof(solicit));
+	solicit.addr = *peer;
+	solicit.flags = flags;
+	ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
+
+	return ret ? -errno : 0;
 }
