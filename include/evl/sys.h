@@ -28,6 +28,8 @@ int evl_open_element(const char *type,
 
 int evl_open_raw(const char *type);
 
+int evl_net_open_device(const char *ifname);
+
 int evl_get_current_mode(void);
 
 unsigned int evl_detect_fpu(void);
