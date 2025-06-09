@@ -14,7 +14,7 @@
 
 int evl_new_timer(int clockfd)
 {
-	int ret, efd;
+	int ret, efd = -1;
 
 	if (__evl_mono_clockfd < 0)
 		return -ENXIO;
