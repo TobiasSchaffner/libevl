@@ -7,6 +7,7 @@ libevl_sources = [
     'heap.c',
     'init.c',
     'mutex.c',
+    'net.c',
     'observable.c',
     'parse_vdso.c',
     'poll.c',

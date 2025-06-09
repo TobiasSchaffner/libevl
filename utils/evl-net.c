@@ -19,8 +19,7 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include <evl/compiler.h>
-#include <evl/net/device.h>
-#include <evl/net/socket.h>
+#include <evl/net/net.h>
 #include <evl/sys.h>
 
 #define short_optlist "@hF::s:S:i:"

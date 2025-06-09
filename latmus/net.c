@@ -18,9 +18,7 @@
 #include <evl/clock.h>
 #include <evl/timer.h>
 #include <evl/proxy.h>
-#include <evl/net/socket.h>
-#include <evl/net/device.h>
-#include <evl/sys.h>
+#include <evl/net/net.h>
 #include <evl/evl.h>
 #include "latmus.h"
 #include "stats.h"
