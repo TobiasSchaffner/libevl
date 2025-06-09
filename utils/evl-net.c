@@ -64,26 +64,14 @@ static void usage(const char *arg0)
 
 static void set_bpf_filter(const char *netif, const char *modpath)
 {
-	int netfd, ret, devfd, progfd;
-	struct evl_net_devfd req;
 	struct bpf_program *prog;
+	int ret, devfd, progfd;
 	struct bpf_object *obj;
 	long err;
 
-	netfd = evl_open_raw(EVL_NET_DEV);
-	if (netfd < 0)
-		error(1, errno, "cannot open EVL '%s' device", EVL_NET_DEV);
-
-	/*
-	 * Get a file descriptor to the network device for EVL-related
-	 * operations. Lookup is performed by name.
-	 */
-	req.name_ptr = (__u64)(uintptr_t)netif;
-	ret = ioctl(netfd, EVL_NET_GETDEVFD, &req);
-	if (ret < 0)
-		error(1, errno, "ioctl(EVL_NET_GETDEVFD)");
-
-	devfd = req.fd;
+	devfd = evl_net_open_device(netif);
+	if (devfd < 0)
+		error(1, -devfd, "cannot open network interface '%s'", netif);
 
 	if (!modpath) {
 		progfd = -1;
@@ -113,7 +101,6 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 	}
 
 	close(devfd);
-	close(netfd);
 }
 
 static void solicit_neighbour(const char *ipaddr, bool permanent)
