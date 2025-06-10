@@ -13,11 +13,10 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
-#include <bpf/bpf.h>
-#include <bpf/libbpf.h>
 #include <evl/compiler.h>
 #include <evl/net/net.h>
 #include <evl/sys.h>
@@ -63,43 +62,11 @@ static void usage(const char *arg0)
 
 static void set_bpf_filter(const char *netif, const char *modpath)
 {
-	struct bpf_program *prog;
-	int ret, devfd, progfd;
-	struct bpf_object *obj;
-	long err;
+	int ret;
 
-	devfd = evl_net_open_device(netif);
-	if (devfd < 0)
-		error(1, -devfd, "cannot open network interface '%s'", netif);
-
-	if (!modpath) {
-		progfd = -1;
-		ret = ioctl(devfd, EVL_NDEVIOC_SETRXEBPF, &progfd);
-		if (ret)
-			error(1, errno, "ioctl(EVL_NDEVIOC_SETRXEBPF)");
-	} else {
-		obj = bpf_object__open_file(modpath, NULL);
-		err = libbpf_get_error(obj);
-		if (err)
-			error(1, err, "cannot open %s for reading", modpath);
-
-		err = bpf_object__load(obj);
-		if (err)
-			error(1, err, "cannot load %s", modpath);
-
-		/*
-		 * If multiple programs are available from the module,
-		 * only the last one gets installed.
-		 */
-		bpf_object__for_each_program(prog, obj) {
-			progfd = bpf_program__fd(prog);
-			ret = ioctl(devfd, EVL_NDEVIOC_SETRXEBPF, &progfd);
-			if (ret)
-				error(1, errno, "ioctl(EVL_NDEVIOC_SETRXEBPF)");
-		}
-	}
-
-	close(devfd);
+	ret = evl_net_set_filter(netif, modpath);
+	if (ret < 0)
+		error(1, -ret, "cannot set BPF filter on '%s'", netif);
 }
 
 static void solicit_neighbour(const char *ipaddr, bool permanent)
