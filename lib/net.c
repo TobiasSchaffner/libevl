@@ -8,6 +8,8 @@
 #include <memory.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/errno.h>
@@ -48,4 +50,49 @@ int evl_net_solicit(int s, const struct sockaddr *peer, int flags)
 	ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
 
 	return ret ? -errno : 0;
+}
+
+int evl_net_set_filter(const char *ifname, const char *modpath)
+{
+	struct bpf_program *prog;
+	struct bpf_object *obj;
+	int devfd, progfd;
+	long ret;
+
+	devfd = evl_net_open_device(ifname);
+	if (devfd < 0)
+		return devfd;
+
+	if (!modpath) {
+		progfd = -1;
+		ret = ioctl(devfd, EVL_NDEVIOC_SETRXEBPF, &progfd) ? -errno : 0;
+	} else {
+		obj = bpf_object__open_file(modpath, NULL);
+		if (!obj) {
+			ret = -errno;
+			goto out;
+		}
+
+		ret = bpf_object__load(obj);
+		if (ret)
+			goto out;
+
+		/*
+		 * If multiple programs are available from the module,
+		 * only the last one gets installed.
+		 */
+		bpf_object__for_each_program(prog, obj) {
+			progfd = bpf_program__fd(prog);
+			ret = ioctl(devfd, EVL_NDEVIOC_SETRXEBPF, &progfd);
+			if (ret) {
+				ret = -errno;
+				break;
+			}
+			close(progfd);
+		}
+	}
+out:
+	close(devfd);
+
+	return ret;
 }

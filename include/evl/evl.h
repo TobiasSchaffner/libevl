@@ -22,7 +22,7 @@
 #include <evl/rwlock.h>
 #include <evl/control-abi.h>
 
-#define __EVL__  29	/* API version */
+#define __EVL__  30	/* API version */
 
 /* The earliest ABI revision we can work with. */
 #define EVL_ABI_PREREQ  40

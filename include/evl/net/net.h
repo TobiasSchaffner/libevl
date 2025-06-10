@@ -20,6 +20,8 @@ int evl_net_open_device(const char *ifname);
 
 int evl_net_solicit(int s, const struct sockaddr *peer, int flags);
 
+int evl_net_set_filter(const char *ifname, const char *modpath);
+
 #ifdef __cplusplus
 }
 #endif
