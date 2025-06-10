@@ -104,6 +104,11 @@ int main(int argc, char *argv[])
 	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL;
 	int c;
 
+	if (argc == 1) {
+		usage(argv[0]);
+		return 0;
+	}
+
 	for (;;) {
 		c = getopt_long(argc, argv, short_optlist, options, NULL);
 		if (c == EOF)
