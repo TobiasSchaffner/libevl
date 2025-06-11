@@ -45,7 +45,7 @@ int evl_net_solicit(int s, const struct sockaddr *peer, int flags)
 	int ret;
 
 	memset(&solicit, 0, sizeof(solicit));
-	solicit.addr = *peer;
+	memcpy(&solicit.addr, peer, sizeof(*peer));
 	solicit.flags = flags;
 	ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
 
