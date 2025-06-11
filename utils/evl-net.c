@@ -20,6 +20,7 @@
 #include <evl/compiler.h>
 #include <evl/net/net.h>
 #include <evl/sys.h>
+#include <evl/evl.h>
 
 #define short_optlist "@hF::s:S:i:"
 
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
 {
 	bool set_filter = false, solicit = false, permanent = false;
 	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL;
-	int c;
+	int c, ret;
 
 	if (argc == 1) {
 		usage(argv[0]);
@@ -142,6 +143,10 @@ int main(int argc, char *argv[])
 
 	if (optind < argc)
 		bad_usage(argv[0]);
+
+	ret = evl_init();	/* Make sure we have the ABI right. */
+	if (ret)
+		error(1, -ret, "evl_init()");
 
 	if (set_filter) {
 		if (!netif || (ipaddr && !solicit))
