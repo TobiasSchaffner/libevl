@@ -275,6 +275,7 @@ static void rx(struct latmus_net_desc *nd, unsigned int seq)
 
 static void tx(struct latmus_net_desc *nd)
 {
+	int tx_flags = MSG_DONTWAIT;
 	struct oob_msghdr msghdr;
 	struct iovec iov;
 	ssize_t ret;
@@ -289,9 +290,28 @@ static void tx(struct latmus_net_desc *nd)
 	msghdr.msg_namelen = sizeof(nd->tx.peer_in);
 	msghdr.msg_flags = 0;
 
-	ret = oob_sendmsg(nd->s, &msghdr, NULL, 0);
-	if (ret < 0)
-		error(1, errno, "oob_sendmsg() failed");
+	for (;;) {
+		ret = oob_sendmsg(nd->s, &msghdr, NULL, tx_flags);
+		if (ret < 0) {
+			if (errno == EWOULDBLOCK) { /* Overrun? */
+				tx_flags = 0; /* Ok, wait next time. */
+				nd->tx.delivery.overruns++;
+				evl_printf("****** OVERRUN ******\n");
+				continue;
+			}
+			/*
+			 * NOTE: receiving EINPROGRESS would be an
+			 * error, since we have solicited the peer
+			 * already, so we should be able to resolve
+			 * its address directly from the oob cache
+			 * (that's the point of evl_net_solicit()),
+			 * therefore we should never have to downgrade
+			 * to in-band transmission.
+			 */
+			error(1, errno, "oob_sendmsg() failed");
+		}
+		break;
+	}
 }
 
 static void timespec_add_ns(struct timespec *__restrict r,
@@ -403,10 +423,11 @@ static int more_net_data(struct statistics *st,
 		tx_worst = (double)nd->statistics[TX_DELIVERY].all_maxlat / 1000.0;
 	}
 
-	evl_printf("RTD|%10.3f|%10.3f|%10.3f|%10.3f|%4u|%10.3f|%10.3f|%10.3f|%10.3f\n",
+	evl_printf("RTD|%10.3f|%10.3f|%10.3f|%10.3f|%4u|%8u|%10.3f|%10.3f|%10.3f|%10.3f\n",
 		rx_dev, rx_usr,
 		tx_dev, tx_usr,
 		spurious_inband_switches,
+		nd->statistics[TX_DELIVERY].all_overruns,
 		rx_best, rx_worst,
 		tx_best, tx_worst);
 
@@ -435,10 +456,10 @@ static void wrap_net_data_page(struct statistics *st, unsigned int round)
 	evl_printf(" CPU%d%s)\n",
 		responder_cpu,
 		responder_cpu_state & EVL_CPU_ISOL ? "" : "-noisol");
-	evl_printf("RTH|%10s|%10s|%10s|%10s|%4s|%10s|%10s|%10s|%10s\n",
+	evl_printf("RTH|%10s|%10s|%10s|%10s|%4s|%8s|%10s|%10s|%10s|%10s\n",
 		"--rx sched", "---rx user",
 		"--tx sched", "---tx user",
-		"-msw",
+		"-msw", "-overrun",
 		"---rx best", "--rx worst",
 		"---tx best", "--tx worst");
 }
@@ -453,14 +474,15 @@ static void print_net_summary(struct statistics *st_array, time_t duration)
 			return;	/* No significant data. */
 
 	evl_printf("---|----------|----------|----------|----------"
-		"|------------------------------------------------\n"
-		"RTS|%10.3f|%10.3f|%10.3f|%10.3f|%4u|    "
+		"|---------------------------------------------------------\n"
+		"RTS|%10.3f|%10.3f|%10.3f|%10.3f|%4u|%8u|                          "
 		"%.2ld:%.2ld:%.2ld/%.2ld:%.2ld:%.2ld\n",
 		(double)st_array[RX_QUEUING].all_maxlat / 1000.0,
 		(double)st_array[RX_DELIVERY].all_maxlat / 1000.0,
 		(double)st_array[TX_QUEUING].all_maxlat / 1000.0,
 		(double)st_array[TX_DELIVERY].all_maxlat / 1000.0,
 		spurious_inband_switches,
+		st_array[TX_DELIVERY].all_overruns,
 		(long)(duration / 3600), (long)((duration / 60) % 60),
 		(long)(duration % 60), (long)(duration / 3600),
 		(long)((t / 60) % 60), (long)(t % 60));
