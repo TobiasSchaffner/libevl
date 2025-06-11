@@ -231,7 +231,7 @@ void print_timer_summary(struct statistics *st, time_t duration)
 
 	printf("---|-----------|-----------|-----------|--------"
 		"|------|-----------------------\n"
-		"RTS|%11.3f|%11.3f|%11.3f|%8d|%6u|    "
+		"RTS|%11.3f|%11.3f|%11.3f|%8d|%6u|      "
 		"%.2ld:%.2ld:%.2ld/%.2ld:%.2ld:%.2ld\n",
 		(double)st->all_minlat / 1000.0,
 		(double)(st->all_sum / st->all_samples) / 1000.0,
