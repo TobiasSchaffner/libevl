@@ -42,7 +42,7 @@ ssize_t oob_recvmsg(int sockfd, struct oob_msghdr *msghdr,
 
 	ret = oob_ioctl(sockfd, EVL_SOCKIOC_RECVMSG, &u_msghdr);
 	if (ret)
-		return -errno;
+		return -1;	/* Status in errno. */
 
 	msghdr->msg_namelen = u_msghdr.namelen;
 	msghdr->msg_controllen = u_msghdr.ctllen;
@@ -72,7 +72,7 @@ ssize_t oob_sendmsg(int sockfd, const struct oob_msghdr *msghdr,
 
 	ret = oob_ioctl(sockfd, EVL_SOCKIOC_SENDMSG, &u_msghdr);
 	if (ret)
-		return -errno;
+		return -1;	/* Status in errno. */
 
 	return (__ssize_t)u_msghdr.count;
 }
