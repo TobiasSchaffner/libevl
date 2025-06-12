@@ -63,11 +63,17 @@ static void usage(const char *arg0)
 
 static void set_bpf_filter(const char *netif, const char *modpath)
 {
-	int ret;
+	int ret, fd;
 
-	ret = evl_net_set_filter(netif, modpath);
+	fd = evl_net_open_device(netif);
+	if (fd < 0)
+		error(1, -fd, "cannot open device %s", netif);
+
+	ret = evl_net_set_filter(fd, modpath);
 	if (ret < 0)
-		error(1, -ret, "cannot set BPF filter on '%s'", netif);
+		error(1, -ret, "cannot set BPF filter on %s", netif);
+
+	close(fd);
 }
 
 static void solicit_neighbour(const char *ipaddr, bool permanent)
