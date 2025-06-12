@@ -296,7 +296,6 @@ static void tx(struct latmus_net_desc *nd)
 			if (errno == EWOULDBLOCK) { /* Overrun? */
 				tx_flags = 0; /* Ok, wait next time. */
 				nd->tx.delivery.overruns++;
-				evl_printf("****** OVERRUN ******\n");
 				continue;
 			}
 			/*
