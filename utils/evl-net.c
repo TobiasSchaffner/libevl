@@ -94,7 +94,7 @@ static void solicit_neighbour(const char *ipaddr, bool permanent)
 	/* sin->sin_port is unused. */
 	ret = evl_net_solicit(s, &addr,	permanent ? EVL_NEIGH_PERMANENT : 0);
 	if (ret)
-		error(1, -ret, "evl_net_solicit()");
+		error(1, -ret, "%s did not respond", ipaddr);
 
 	close(s);
 }
