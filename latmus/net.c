@@ -226,6 +226,7 @@ static void log_tx_times(struct latmus_net_desc *nd,
 
 static void rx(struct latmus_net_desc *nd, unsigned int seq)
 {
+	struct timespec timeout, *ts = &timeout;
 	struct evl_net_iotimes iotimes = { 0 };
 	struct oob_msghdr msghdr;
 	size_t next_serial;
@@ -242,9 +243,26 @@ static void rx(struct latmus_net_desc *nd, unsigned int seq)
 	msghdr.msg_namelen = 0;
 	msghdr.msg_flags = 0;
 
-	ret = oob_recvmsg(nd->s, &msghdr, NULL, 0);
-	if (ret < 0)
-		error(1, errno, "oob_recvmsg() failed");
+	evl_read_clock(EVL_CLOCK_MONOTONIC, &timeout);
+	timeout.tv_sec += seq ? 3 : 15;
+
+	for (;;) {
+		ret = oob_recvmsg(nd->s, &msghdr, ts, 0);
+		if (ret < 0) {
+			if (errno == ETIMEDOUT) {
+				if (verbosity) {
+					if (seq)
+						evl_printf("(RX stalled)\n");
+					else
+						evl_printf("(Waiting for peer to start)\n");
+				}
+				ts = NULL;
+				continue;
+			}
+			error(1, errno, "oob_recvmsg() failed");
+		}
+		break;
+	}
 
 	switch(nd->rx.packet[0]) {
 	case '^':
