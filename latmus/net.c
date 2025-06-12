@@ -544,8 +544,11 @@ void run_net_test(bool no_check, size_t histogram_cells)
 	 */
 	ret = evl_net_solicit(s, (const struct sockaddr *)&peer_in,
 			EVL_NEIGH_PERMANENT);
-	if (ret)
-		error(1, -ret, "evl_net_solicit()");
+	if (ret) {
+		char ip[INET_ADDRSTRLEN];
+		error(1, -ret, "%s did not respond",
+			inet_ntop(AF_INET, &peer_in.sin_addr, ip, sizeof(ip)));
+	}
 
 	/* Enable all existing RX+TX timestamping points. */
 	tsflags = EVL_SOF_TIMESTAMPS;
