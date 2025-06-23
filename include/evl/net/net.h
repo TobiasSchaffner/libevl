@@ -16,12 +16,12 @@ struct sockaddr;
 extern "C" {
 #endif
 
-int evl_net_open_device(const char *ifname);
-
 int evl_net_enable_port(const char *netif,
 			size_t poolsz, size_t bufsz);
 
 int evl_net_disable_port(int devfd);
+
+int evl_net_open_port(const char *ifname);
 
 int evl_net_query_port(int devfd, struct evl_net_devstat *devs);
 

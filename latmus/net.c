@@ -535,10 +535,10 @@ void run_net_test(bool no_check, size_t histogram_cells)
 		error(1, EINVAL, "cannot resolve '%s' as an IPv4 address",
 			peer_host);
 
-	/* evl_net_open_device() only works for oob ports. */
-	devfd = evl_net_open_device(local_netif);
+	/* evl_net_open_port() only works for oob ports. */
+	devfd = evl_net_open_port(local_netif);
 	if (devfd < 0)
-		error(1, errno, "%s is not an out-of-band networking port",
+		error(1, errno, "%s is not an out-of-band port",
 			local_netif);
 
 	close(devfd);

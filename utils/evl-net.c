@@ -100,16 +100,16 @@ static void enable_oob_port(const char *netif, size_t poolsz, size_t bufsz)
 	if (fd < 0)
 		error(1, -fd, "cannot enable out-of-band port on %s", netif);
 
-	close(fd);		/* We don't need the fildes to the oob port. */
+	close(fd);	/* We don't need the fildes of the oob port. */
 }
 
 static void disable_oob_port(const char *netif)
 {
 	int ret, fd;
 
-	fd = evl_net_open_device(netif);
+	fd = evl_net_open_port(netif);
 	if (fd < 0)
-		error(1, -fd, "cannot open device %s", netif);
+		error(1, -fd, "cannot open out-of-band port %s", netif);
 
 	ret = evl_net_disable_port(fd);
 	if (ret < 0)
@@ -124,9 +124,9 @@ static void query_oob_port(const char *netif, const char *which)
 	const char *space = "";
 	int ret, fd;
 
-	fd = evl_net_open_device(netif);
+	fd = evl_net_open_port(netif);
 	if (fd < 0)
-		error(1, -fd, "cannot open device %s", netif);
+		error(1, -fd, "cannot open out-of-band port %s", netif);
 
 	ret = evl_net_query_port(fd, &devs);
 	if (ret < 0)
@@ -183,9 +183,9 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 {
 	int ret, fd;
 
-	fd = evl_net_open_device(netif);
+	fd = evl_net_open_port(netif);
 	if (fd < 0)
-		error(1, -fd, "cannot open device %s", netif);
+		error(1, -fd, "cannot open out-of-band port %s", netif);
 
 	ret = evl_net_set_filter(fd, modpath);
 	if (ret < 0)
