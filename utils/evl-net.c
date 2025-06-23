@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -76,15 +77,35 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 	close(fd);
 }
 
-static void solicit_neighbour(const char *ipaddr, bool permanent)
+static int find_host_ip(const char *host, struct in_addr *addr)
+{
+	struct addrinfo hints, *res;
+	int ret;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_ADDRCONFIG;
+
+	ret = getaddrinfo(host, NULL, &hints, &res);
+	if (ret)
+		return ret == EAI_SYSTEM ? -errno : -ESRCH;
+
+	*addr = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+
+	return 0;
+}
+
+static void solicit_neighbour(const char *host, bool permanent)
 {
 	struct sockaddr addr = { 0 };
 	struct sockaddr_in *sin = (struct sockaddr_in *)&addr;
 	long ret;
 	int s;
 
-	if (!inet_pton(AF_INET, ipaddr, &sin->sin_addr))
-		error(1, EINVAL, "invalid IP address");
+	ret = find_host_ip(host, &sin->sin_addr);
+	if (ret < 0)
+		error(1, -ret, "invalid host/IP address");
 
 	s = socket(AF_INET, SOCK_DGRAM | SOCK_OOB, 0);
 	if (s < 0)
@@ -94,7 +115,7 @@ static void solicit_neighbour(const char *ipaddr, bool permanent)
 	/* sin->sin_port is unused. */
 	ret = evl_net_solicit(s, &addr,	permanent ? EVL_NEIGH_PERMANENT : 0);
 	if (ret)
-		error(1, -ret, "%s did not respond", ipaddr);
+		error(1, -ret, "%s did not respond", host);
 
 	close(s);
 }
