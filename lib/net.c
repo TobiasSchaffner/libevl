@@ -87,3 +87,36 @@ int evl_net_solicit(int s, const struct sockaddr *peer, int flags)
 
 	return ret ? -errno : 0;
 }
+
+int evl_net_enable_port(const char *ifname, size_t poolsz, size_t bufsz)
+{
+	struct evl_net_devparams devp = {
+		.name_ptr = (__u64)(uintptr_t)ifname,
+		.poolsz = poolsz,
+		.bufsz = bufsz,
+		.fd = -1,	/* keep valgrind quiet.. */
+	};
+	int netfd, ret;
+
+	netfd = evl_open_raw(EVL_NET_DEV);
+	if (netfd < 0)
+		return -errno;
+
+	ret = ioctl(netfd, EVL_NET_OPENPORT, &devp);
+	if (ret)
+		ret = -errno;
+
+	close(netfd);
+
+	return ret ?: devp.fd;
+}
+
+int evl_net_disable_port(int devfd)
+{
+	return ioctl(devfd, EVL_NDEVIOC_SWITCHOFF) ? -errno : 0;
+}
+
+int evl_net_query_port(int devfd, struct evl_net_devstat *devs)
+{
+	return ioctl(devfd, EVL_NDEVIOC_GETSTAT, devs) ? -errno : 0;
+}

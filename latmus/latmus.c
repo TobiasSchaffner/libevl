@@ -567,9 +567,9 @@ static void usage(void)
         fprintf(stderr, "-O --gpio-out=<spec>    output GPIO line configuration\n");
         fprintf(stderr, "   with <spec> = gpiochip-devname,pin-number\n");
         fprintf(stderr, "-E --net=<host>         measure out-of-band UDP delay talking to <host>\n");
-        fprintf(stderr, "-L --local-if=<netif>   use specified local network interface (with -E)\n");
-        fprintf(stderr, "-n --no-check           disable packet sequence check (with -E)\n");
-        fprintf(stderr, "-S --packet-size=<n>    set the UDP packet size (> 20 bytes, with -E)\n");
+        fprintf(stderr, "   -L --local-if=<netif>   use specified local network interface\n");
+        fprintf(stderr, "   -n --no-check           disable packet sequence check\n");
+        fprintf(stderr, "   -S --packet-size=<n>    set the UDP packet size (> 20 bytes)\n");
 }
 
 static void bad_usage(int argc, char *const argv[])

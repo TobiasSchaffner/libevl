@@ -23,9 +23,14 @@
 #include <evl/sys.h>
 #include <evl/evl.h>
 
-#define short_optlist "@hF::s:S:i:"
+#define short_optlist "@hedQ::p:b:F::s:S:i:"
 
 static const struct option options[] = {
+	{
+		.name = "interface",
+		.has_arg = required_argument,
+		.val = 'i',
+	},
 	{
 		.name = "filter",
 		.has_arg = optional_argument,
@@ -42,9 +47,29 @@ static const struct option options[] = {
 		.val = 'S',
 	},
 	{
-		.name = "interface",
+		.name = "enable-port",
+		.has_arg = no_argument,
+		.val = 'e',
+	},
+	{
+		.name = "disable-port",
+		.has_arg = no_argument,
+		.val = 'd',
+	},
+	{
+		.name = "pool-size",
 		.has_arg = required_argument,
-		.val = 'i',
+		.val = 'p',
+	},
+	{
+		.name = "buffer-size",
+		.has_arg = required_argument,
+		.val = 'b',
+	},
+	{
+		.name = "query-port",
+		.has_arg = optional_argument,
+		.val = 'Q',
 	},
 	{
 		.name = "help",
@@ -57,9 +82,101 @@ static const struct option options[] = {
 static void usage(const char *arg0)
 {
         fprintf(stderr, "usage: %s [options]:\n", basename(arg0));
-	fprintf(stderr, "-F[<bpf-module.o>] -i <network-interface>     install/remove eBPF filter (RX)\n");
-	fprintf(stderr, "-s <ipaddr>                                   neighbour solicitation with <ipaddr>\n");
-	fprintf(stderr, "-S <ipaddr>                                   neighbour solicitation with <ipaddr> (set permanent)\n");
+	fprintf(stderr, "-e -i <ifname>                     enable out-of-band port in network interface <ifname>\n");
+	fprintf(stderr, "   -p <pool-size>                  max number of out-of-band socket buffers (0=default)\n");
+	fprintf(stderr, "   -b <buffer-size>                size (in bytes) of out-of-band socket buffer (0=default)\n");
+	fprintf(stderr, "-d -i <ifname>                     disable out-of-band port in network interface <ifname>\n");
+	fprintf(stderr, "-s <ipaddr>                        neighbour solicitation with <ipaddr>\n");
+	fprintf(stderr, "-S <ipaddr>                        neighbour solicitation with <ipaddr> (set permanent)\n");
+	fprintf(stderr, "-Q[RrTtosfa] -i <ifname>           query network interface information about <ifname>\n");
+	fprintf(stderr, "-F[<bpf-module.o>] -i <ifname>     install/remove eBPF filter (RX)\n");
+}
+
+static void enable_oob_port(const char *netif, size_t poolsz, size_t bufsz)
+{
+	int fd;
+
+	fd = evl_net_enable_port(netif, poolsz, bufsz);
+	if (fd < 0)
+		error(1, -fd, "cannot enable out-of-band port on %s", netif);
+
+	close(fd);		/* We don't need the fildes to the oob port. */
+}
+
+static void disable_oob_port(const char *netif)
+{
+	int ret, fd;
+
+	fd = evl_net_open_device(netif);
+	if (fd < 0)
+		error(1, -fd, "cannot open device %s", netif);
+
+	ret = evl_net_disable_port(fd);
+	if (ret < 0)
+		error(1, -ret, "cannot disable out-of-band port on %s", netif);
+
+	close(fd);
+}
+
+static void query_oob_port(const char *netif, const char *which)
+{
+	struct evl_net_devstat devs = { 0 };
+	const char *space = "";
+	int ret, fd;
+
+	fd = evl_net_open_device(netif);
+	if (fd < 0)
+		error(1, -fd, "cannot open device %s", netif);
+
+	ret = evl_net_query_port(fd, &devs);
+	if (ret < 0)
+		error(1, -ret, "cannot query out-of-band port on %s", netif);
+
+	close(fd);
+
+	if (!which || !*which) {
+		printf("oob capability: %s\n", devs.oob_capable ? "yes" : "no");
+		printf("    rx packets: %llu\n", devs.rx_packets);
+		printf("      rx bytes: %llu\n", devs.rx_bytes);
+		printf("    tx packets: %llu\n", devs.tx_packets);
+		printf("      tx bytes: %llu\n", devs.tx_bytes);
+		printf("      skb size: %u\n", devs.skb_size);
+		printf("      skb free: %u / %u\n", devs.skb_free, devs.skb_total);
+	} else {
+		while (*which) {
+			switch (*which) {
+			case 'R':
+				printf("%s%llu", space, devs.rx_packets);
+				break;
+			case 'r':
+				printf("%s%llu", space, devs.rx_bytes);
+				break;
+			case 'T':
+				printf("%s%llu", space, devs.tx_packets);
+				break;
+			case 't':
+				printf("%s%llu", space, devs.tx_bytes);
+				break;
+			case 'o':
+				printf("%s%u", space, devs.oob_capable);
+				break;
+			case 's':
+				printf("%s%u", space, devs.skb_size);
+				break;
+			case 'f':
+				printf("%s%u", space, devs.skb_free);
+				break;
+			case 'a':
+				printf("%s%u", space, devs.skb_total);
+				break;
+			default:
+				error(1, EINVAL, "invalid query modifer '%c'", *which);
+			}
+			space = " ";
+			which++;
+		}
+		putchar('\n');
+	}
 }
 
 static void set_bpf_filter(const char *netif, const char *modpath)
@@ -128,9 +245,12 @@ static void bad_usage(const char *arg0)
 
 int main(int argc, char *argv[])
 {
-	bool set_filter = false, solicit = false, permanent = false;
-	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL;
+	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL, *query_type;
+	bool set_filter = false, solicit = false, permanent = false,
+		enable = false, disable = false, query = false;
+	size_t poolsz = 0, bufsz = 0; /* Use defaults. */
 	int c, ret;
+	char *p;
 
 	if (argc == 1) {
 		usage(argv[0]);
@@ -143,12 +263,25 @@ int main(int argc, char *argv[])
 			break;
 
 		switch (c) {
-		case 'i':
-			netif = optarg;
+		case 'e':
+			enable = true;
 			break;
-		case 'F':
-			modpath = optarg;
-			set_filter = true;
+		case 'd':
+			disable = true;
+			break;
+		case 'Q':
+			query = true;
+			query_type = optarg;
+			break;
+		case 'p':
+			poolsz = strtol(optarg, &p, 10);
+			if (*p)
+				bad_usage(argv[0]);
+			break;
+		case 'b':
+			bufsz = strtol(optarg, &p, 10);
+			if (*p)
+				bad_usage(argv[0]);
 			break;
 		case 'S':
 			permanent = true;
@@ -157,9 +290,16 @@ int main(int argc, char *argv[])
 			ipaddr = optarg;
 			solicit = true;
 			break;
+		case 'F':
+			modpath = optarg;
+			set_filter = true;
+			break;
 		case 'h':
 			usage(argv[0]);
 			return 0;
+		case 'i':
+			netif = optarg;
+			break;
 		case '@':
 			printf("manage the EVL out-of-band networking stack\n");
 			return 0;
@@ -175,17 +315,23 @@ int main(int argc, char *argv[])
 	if (ret)
 		error(1, -ret, "evl_init()");
 
-	if (set_filter) {
-		if (!netif || (ipaddr && !solicit))
-			bad_usage(argv[0]);
-		set_bpf_filter(netif, modpath);
-	}
+	if ((disable || enable || query || set_filter) && !netif)
+		bad_usage(argv[0]);
 
-	if (solicit) {
-		if (netif && !set_filter)
-			bad_usage(argv[0]);
+	if (disable)
+		disable_oob_port(netif);
+
+	if (enable)
+		enable_oob_port(netif, poolsz, bufsz);
+
+	if (set_filter)
+		set_bpf_filter(netif, modpath);
+
+	if (solicit)
 		solicit_neighbour(ipaddr, permanent);
-	}
+
+	if (query)
+		query_oob_port(netif, query_type);
 
 	return 0;
 }

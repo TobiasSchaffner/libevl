@@ -508,6 +508,7 @@ static void print_net_summary(struct statistics *st_array, time_t duration)
 void run_net_test(bool no_check, size_t histogram_cells)
 {
 	struct sockaddr_in peer_in = { 0 }, local_in = { 0 };
+	struct evl_net_devstat devs = { 0 };
 	int ret, s, sig, n, devfd, tsflags;
 	struct latmus_net_desc *nd;
 	struct sched_param param;
