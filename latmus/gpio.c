@@ -305,6 +305,7 @@ void run_gpio_test(bool oob_mode, size_t histogram_cells)
 			.more_data = more_timer_data,
 			.wrap_data_page = wrap_timer_data_page,
 			.print_summary = print_timer_summary,
+			.get_elapsed_secs = get_timer_elapsed_secs,
 		},
 	};
 	struct latmon_net_request req;
@@ -393,7 +394,7 @@ void run_gpio_test(bool oob_mode, size_t histogram_cells)
 	pthread_cancel(logger);
 
 	duration = time(NULL) - start_time - 1; /* -1s warm-up time */
-	consume_statistics(&statistics, 1, duration);
+	consume_statistics(&statistics, 1, duration, spurious_inband_switches > 0);
 
 	if (larg.hung)
 		error(1, ETIMEDOUT, "latmon at %s is unresponsive",

@@ -114,6 +114,7 @@ void run_timer_test(size_t histogram_cells)
 			.more_data = more_timer_data,
 			.wrap_data_page = wrap_timer_data_page,
 			.print_summary = print_timer_summary,
+			.get_elapsed_secs = get_timer_elapsed_secs,
 		},
 	};
 	pthread_t responder, sitter;
@@ -168,7 +169,7 @@ void run_timer_test(size_t histogram_cells)
 		__log_results(&statistics, &last_bulk);
 
 	duration = time(NULL) - start_time - 1; /* -1s warm-up time */
-	consume_statistics(&statistics, 1, duration);
+	consume_statistics(&statistics, 1, duration, spurious_inband_switches > 0);
 }
 
 int more_timer_data(struct statistics *st,
@@ -240,4 +241,9 @@ void print_timer_summary(struct statistics *st, time_t duration)
 		(long)(duration / 3600), (long)((duration / 60) % 60),
 		(long)(duration % 60), (long)(duration / 3600),
 		(long)((t / 60) % 60), (long)(t % 60));
+}
+
+time_t get_timer_elapsed_secs(struct statistics *st)
+{
+	return time(NULL) - start_time - 1;
 }

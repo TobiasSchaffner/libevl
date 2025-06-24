@@ -11,6 +11,7 @@
 #define _EVL_LATMUS_TIMER_H
 
 #include <stdbool.h>
+#include <time.h>
 #include <sys/types.h>
 
 void run_timer_test(size_t histogram_cells);
@@ -25,5 +26,7 @@ int more_timer_data(struct statistics *st,
 
 void print_timer_summary(struct statistics *st,
 			time_t duration);
+
+time_t get_timer_elapsed_secs(struct statistics *st);
 
 #endif /* !_EVL_LATMUS_TIMER_H */

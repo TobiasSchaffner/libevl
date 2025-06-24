@@ -30,6 +30,7 @@ struct statistics {
 		void (*wrap_data_page)(struct statistics *st,
 				unsigned int round);
 		void (*print_summary)(struct statistics *st_array, time_t duration);
+		time_t (*get_elapsed_secs)(struct statistics *st_array);
 	} ops;
 };
 
@@ -50,6 +51,7 @@ void log_results(struct statistics *st,
 		unsigned int round);
 
 void consume_statistics(struct statistics *st_array, int nr,
-			time_t duration);
+			time_t duration,
+			bool degraded_mode);
 
 #endif /* !_EVL_LATMUS_STATS_H */

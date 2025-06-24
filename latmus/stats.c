@@ -71,7 +71,7 @@ void __log_results(struct statistics *st,
 		st->all_minlat = meas->min_lat;
 
 	if (meas->max_lat > st->all_maxlat) {
-		st->peak_time = time(NULL) - start_time - 1;
+		st->peak_time = st->ops.get_elapsed_secs(st);
 		st->all_maxlat = meas->max_lat;
 		if (abort_threshold && st->all_maxlat > abort_threshold) {
 			fprintf(stderr, "latency threshold is exceeded"
@@ -122,13 +122,16 @@ static void paste_file_in(const char *path, const char *header)
 	fclose(fp);
 }
 
-static void dump_gnuplot(struct statistics *st_array, int nr, time_t duration)
+static void dump_gnuplot(struct statistics *st_array, int nr,
+			time_t duration, bool degraded_mode)
 {
 	struct statistics *st;
 	int first, last, n;
 	bool outliers;
 
-	fprintf(plot_fp, "# test started on: %s", ctime(&start_time));
+	fprintf(plot_fp, "# Test started on: %s", ctime(&start_time));
+	if (degraded_mode)
+		fprintf(plot_fp, "# DEGRADED MODE DETECTED - FIGURES MAY BE IRRELEVANT\n");
 	paste_file_in("/proc/version", NULL);
 	paste_file_in("/proc/cmdline", NULL);
 	fprintf(plot_fp, "# libevl version: %s\n", evl_get_version().version_string);
@@ -214,14 +217,15 @@ done:
 	fputc('\n', plot_fp);
 }
 
-void consume_statistics(struct statistics *st_array, int nr, time_t duration)
+void consume_statistics(struct statistics *st_array, int nr,
+			time_t duration, bool degraded_mode)
 {
 	int n;
 
 	st_array->ops.print_summary(st_array, duration);
 
 	if (plot_fp) {
-		dump_gnuplot(st_array, nr, duration);
+		dump_gnuplot(st_array, nr, duration, degraded_mode);
 		if (plot_fp != stdout)
 			fclose(plot_fp);
 	}

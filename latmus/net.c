@@ -29,6 +29,8 @@
 #define FRAME_METADATA_LEN	20	/* ^xxxxxxxxxxxxxxxxx ... $NN */
 #define DEFAULT_PACKET_LEN	64	/* payload=44 + FRAME_METADATA_LEN */
 
+static bool degraded_mode;	/* NIC is not oob-capable. */
+
 struct latmus_net_rx {
 	char *packet;
 	size_t last_serial;
@@ -470,9 +472,10 @@ static void wrap_net_data_page(struct statistics *st, unsigned int round)
 		(long)(dt / 3600), (long)((dt / 60) % 60), (long)(dt % 60),
 			context_labels[context_type], period_usecs);
 	evl_printf(" priority %d,", responder_priority);
-	evl_printf(" CPU%d%s)\n",
+	evl_printf(" CPU%d%s%s)\n",
 		responder_cpu,
-		responder_cpu_state & EVL_CPU_ISOL ? "" : "-noisol");
+		responder_cpu_state & EVL_CPU_ISOL ? "" : "-noisol",
+		degraded_mode ? ", DEGRADED" : "");
 	evl_printf("RTH|%10s|%10s|%10s|%10s|%4s|%8s|%10s|%10s|%10s|%10s\n",
 		"--rx sched", "---rx user",
 		"--tx sched", "---tx user",
@@ -503,6 +506,11 @@ static void print_net_summary(struct statistics *st_array, time_t duration)
 		(long)(duration / 3600), (long)((duration / 60) % 60),
 		(long)(duration % 60), (long)(duration / 3600),
 		(long)((t / 60) % 60), (long)(t % 60));
+}
+
+static time_t get_net_elapsed_secs(struct statistics *st)
+{
+	return time(NULL) - start_time;
 }
 
 void run_net_test(bool no_check, size_t histogram_cells)
@@ -538,7 +546,12 @@ void run_net_test(bool no_check, size_t histogram_cells)
 	/* evl_net_open_port() only works for oob ports. */
 	devfd = evl_net_open_port(local_netif);
 	if (devfd < 0)
-		error(1, errno, "%s is not an out-of-band port",
+		error(1, -devfd, "%s is not an out-of-band port",
+			local_netif);
+
+	ret = evl_net_query_port(devfd, &devs);
+	if (ret)
+		error(1, -ret, "cannot query information about %s",
 			local_netif);
 
 	close(devfd);
@@ -548,6 +561,13 @@ void run_net_test(bool no_check, size_t histogram_cells)
 	ret = find_netif_ip(local_netif, &local_in.sin_addr);
 	if (ret)
 		error(1, -ret, "find_netif_ip(%s)", local_netif);
+
+	degraded_mode = !devs.oob_capable;
+	if (degraded_mode && verbosity) {
+		printf("CAUTION: device %s cannot handle traffic directly from\n", local_netif);
+		printf("         the out-of-band stage. Latency figures reported\n");
+		printf("         in this best-effort mode are degraded.\n");
+	}
 
 	/* Get an UDP socket with out-of-band capabilities. */
 	s = socket(AF_INET, SOCK_DGRAM | SOCK_OOB, 0);
@@ -598,6 +618,7 @@ void run_net_test(bool no_check, size_t histogram_cells)
 			.more_data = more_net_data,
 			.wrap_data_page = wrap_net_data_page,
 			.print_summary = print_net_summary,
+			.get_elapsed_secs = get_net_elapsed_secs,
 		};
 	}
 
@@ -630,5 +651,6 @@ void run_net_test(bool no_check, size_t histogram_cells)
 	sigwait(&sigmask, &sig);
 
 	duration = time(NULL) - start_time;
-	consume_statistics(nd->statistics, NR_STATS, duration);
+	consume_statistics(nd->statistics, NR_STATS, duration,
+			degraded_mode || spurious_inband_switches > 0);
 }
