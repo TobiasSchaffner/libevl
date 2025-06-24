@@ -27,8 +27,6 @@ static int lat_xfd = -1;
 
 static struct latmus_measurement last_bulk;
 
-static struct statistics statistics;
-
 static pthread_t logger;
 
 void *timer_responder(void *arg)
@@ -63,6 +61,7 @@ void *timer_responder(void *arg)
 
 static void *timer_test_sitter(void *arg)
 {
+	struct statistics *st = arg;
 	struct latmus_measurement_result mr;
 	struct latmus_result result;
 	int ret;
@@ -76,8 +75,14 @@ static void *timer_test_sitter(void *arg)
 		error(1, -ret, "evl_attach_self() failed");
 
 	mr.last_ptr = (__u64)(uintptr_t)&last_bulk;
-	mr.histogram_ptr = (__u64)(uintptr_t)statistics.histogram;
-	mr.len = statistics.h_cells * sizeof(int32_t);
+	/*
+	 * Tell the latmus driver where to dump the histogram data
+	 * which it collects for us (we never call
+	 * add_measurement_histogram() in timer/gpio test mode, unlike
+	 * the net test which does).
+	 */
+	mr.histogram_ptr = (__u64)(uintptr_t)st->histogram;
+	mr.len = st->h_cells * sizeof(int32_t);
 	result.data_ptr = (__u64)(uintptr_t)&mr;
 	result.len = sizeof(mr);
 
@@ -146,7 +151,7 @@ void run_timer_test(size_t histogram_cells)
 
 	pthread_attr_init(&attr);
 	pthread_attr_setstacksize(&attr, EVL_STACK_DEFAULT);
-	ret = pthread_create(&sitter, &attr, timer_test_sitter, NULL);
+	ret = pthread_create(&sitter, &attr, timer_test_sitter, &statistics);
 	pthread_attr_destroy(&attr);
 	if (ret)
 		error(1, ret, "timer_test_sitter");

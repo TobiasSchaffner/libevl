@@ -45,14 +45,27 @@ void destroy_statistics(struct statistics *st)
 		free(st->histogram);
 }
 
-void add_measurement(struct latmus_measurement *meas, __s64 t)
+void add_measurement(struct latmus_measurement *meas, __s64 dt)
 {
-	meas->sum_lat += t;
-	if (t < meas->min_lat)
-		meas->min_lat = (__s32)t;
-	if (t > meas->max_lat)
-		meas->max_lat = (__s32)t;
+	meas->sum_lat += dt;
+	if (dt < meas->min_lat)
+		meas->min_lat = (__s32)dt;
+	if (dt > meas->max_lat)
+		meas->max_lat = (__s32)dt;
 	meas->samples++;
+}
+
+void add_measurement_histogram(struct statistics *st,
+			struct latmus_measurement *meas, __s64 dt)
+{
+	add_measurement(meas, dt);
+
+	if (st->histogram) {
+		size_t cell = (dt < 0 ? -dt : dt) / 1000; /* us */
+		if (cell >= st->h_cells)
+			cell = st->h_cells - 1;
+		st->histogram[cell]++;
+	}
 }
 
 void reset_measurement(struct latmus_measurement *meas)
@@ -157,6 +170,8 @@ static void dump_gnuplot(struct statistics *st_array, int nr,
 		fprintf(plot_fp, "# IN-BAND SWITCHES: %u\n", spurious_inband_switches);
 
 	for (st = st_array; st < st_array + nr; st++) {
+		if (st->all_samples == 0)
+			continue;
 		if (st->all_overruns > 0)
 			fprintf(plot_fp, "# %s OVERRUNS: %u\n",
 				st->name, st->all_overruns);
@@ -179,16 +194,18 @@ static void dump_gnuplot(struct statistics *st_array, int nr,
 	 * heading/trailing series.  All stat bulks which we want to
 	 * be merged for display have histograms of the same size.
 	 */
-	for (n = 0; (size_t)n < st->h_cells; n++)
+	for (n = 0; (size_t)n < st_array->h_cells; n++)
 		for (st = st_array; st < st_array + nr; st++)
 			if (st->histogram[n])
 				goto next;
+	n = 0;
 next:
 	first = n;
-	for (n = st->h_cells - 1; n >= 0; n--)
+	for (n = st_array->h_cells - 1; n >= 0; n--)
 		for (st = st_array; st < st_array + nr; st++)
 			if (st->histogram[n])
 				goto done;
+	n = 0;
 done:
 	last = n;
 	for (n = first; n < last; n++) {

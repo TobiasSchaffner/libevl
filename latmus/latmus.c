@@ -737,14 +737,16 @@ int main(int argc, char *const argv[])
 			fprintf(stderr, "--plot implies --measure only, ignoring --plot\n");
 			plot_filename = NULL;
 			plot_fp = NULL;
-		} else if (plot_filename) {
-			if (!access(plot_filename, F_OK))
-				error(1, EINVAL, "declining to overwrite %s",
-					plot_filename);
-			plot_fp = fopen(plot_filename, "w");
-			if (!plot_fp)
-				error(1, errno, "cannot open %s for writing",
-					plot_filename);
+		} else {
+			if (plot_filename) {
+				if (!access(plot_filename, F_OK))
+					error(1, EINVAL, "declining to overwrite %s",
+						plot_filename);
+				plot_fp = fopen(plot_filename, "w");
+				if (!plot_fp)
+					error(1, errno, "cannot open %s for writing",
+						plot_filename);
+			}
 			if (histogram_cells == 0)
 				histogram_cells = 200;
 		}

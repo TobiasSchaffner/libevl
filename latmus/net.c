@@ -179,6 +179,14 @@ static bool parse_input(struct latmus_net_desc *nd, size_t *next_serial)
 	return true;	/* Frame looks good. */
 }
 
+static void finalize_last_bulk(struct latmus_net_desc *nd)
+{
+	__log_results(nd->statistics + TX_QUEUING, &nd->tx.queuing);
+	__log_results(nd->statistics + TX_DELIVERY, &nd->tx.delivery);
+	__log_results(nd->statistics + RX_QUEUING, &nd->rx.queuing);
+	__log_results(nd->statistics + RX_DELIVERY, &nd->rx.delivery);
+}
+
 static void log_rx_times(struct latmus_net_desc *nd,
 			const struct evl_net_iotimes *iotimes,
 			unsigned int round)
@@ -187,13 +195,15 @@ static void log_rx_times(struct latmus_net_desc *nd,
 
 	/* rx_sched: from the driver to the UDP entry point. */
 	dt = iotimes->queuing_time - iotimes->device_time;
-	add_measurement(&nd->rx.queuing, dt);
+	add_measurement_histogram(nd->statistics + RX_QUEUING, &nd->rx.queuing, dt);
 
 	/* rx_user: from the driver to the UDP delivery point. */
 	dt = iotimes->delivery_time - iotimes->device_time;
-	add_measurement(&nd->rx.delivery, dt);
+	add_measurement_histogram(nd->statistics + RX_DELIVERY, &nd->rx.delivery, dt);
 
 	if ((round % rounds_per_sec) == 0) {
+		__log_results(nd->statistics + TX_QUEUING, &nd->tx.queuing);
+		__log_results(nd->statistics + TX_DELIVERY, &nd->tx.delivery);
 		__log_results(nd->statistics + RX_QUEUING, &nd->rx.queuing);
 		log_results(nd->statistics + RX_DELIVERY, &nd->rx.delivery,
 			round / rounds_per_sec);
@@ -215,15 +225,12 @@ static void log_tx_times(struct latmus_net_desc *nd,
 	for (n = 0; n < nr; n++, iotimes++) {
 		/* tx_dev: from the UDP entry point to the qdisc insertion. */
 		dt = iotimes->queuing_time - iotimes->delivery_time;
-		add_measurement(&nd->tx.queuing, dt);
+		add_measurement_histogram(nd->statistics + TX_QUEUING, &nd->tx.queuing, dt);
 
 		/* tx_usr: from the UDP entry point to the device. */
 		dt = iotimes->device_time - iotimes->delivery_time;
-		add_measurement(&nd->tx.delivery, dt);
+		add_measurement_histogram(nd->statistics + TX_DELIVERY, &nd->tx.delivery, dt);
 	}
-
-	__log_results(nd->statistics + TX_QUEUING, &nd->tx.queuing);
-	__log_results(nd->statistics + TX_DELIVERY, &nd->tx.delivery);
 }
 
 static void rx(struct latmus_net_desc *nd, unsigned int seq)
@@ -651,6 +658,7 @@ void run_net_test(bool no_check, size_t histogram_cells)
 	sigwait(&sigmask, &sig);
 
 	duration = time(NULL) - start_time;
+	finalize_last_bulk(nd);
 	consume_statistics(nd->statistics, NR_STATS, duration,
 			degraded_mode || spurious_inband_switches > 0);
 }

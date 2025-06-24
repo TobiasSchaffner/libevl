@@ -43,6 +43,9 @@ void reset_measurement(struct latmus_measurement *meas);
 
 void add_measurement(struct latmus_measurement *meas, __s64 t);
 
+void add_measurement_histogram(struct statistics *st,
+			struct latmus_measurement *meas, __s64 t);
+
 void __log_results(struct statistics *st,
 		const struct latmus_measurement *meas);
 
