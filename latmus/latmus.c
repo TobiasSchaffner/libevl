@@ -805,7 +805,7 @@ int main(int argc, char *const argv[])
 			error(1, EINVAL, "-[eE] requires -L<netif> to specify a local interface");
 	}
 
-	if (responder_priority < 0 && !(test_irqlat || test_sirqlat))
+	if (responder_priority < 0 && (tuning || !(test_irqlat || test_sirqlat)))
 		responder_priority = test_netlat ? 10 : 98;
 
 	time(&start_time);
