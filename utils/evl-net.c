@@ -324,6 +324,9 @@ int main(int argc, char *argv[])
 	if (ret)
 		error(1, -ret, "evl_init()");
 
+	if (!(disable || enable || query || solicit || set_filter))
+		bad_usage(argv[0]);
+
 	if ((disable || enable || query || set_filter) && !netif)
 		bad_usage(argv[0]);
 
