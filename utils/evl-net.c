@@ -86,8 +86,8 @@ static void usage(const char *arg0)
 	fprintf(stderr, "   -p <pool-size>                  max number of out-of-band socket buffers (0=default)\n");
 	fprintf(stderr, "   -b <buffer-size>                size (in bytes) of out-of-band socket buffer (0=default)\n");
 	fprintf(stderr, "-d -i <ifname>                     disable out-of-band port in network interface <ifname>\n");
-	fprintf(stderr, "-s <ipaddr>                        neighbour solicitation with <ipaddr>\n");
-	fprintf(stderr, "-S <ipaddr>                        neighbour solicitation with <ipaddr> (set permanent)\n");
+	fprintf(stderr, "-s <ipaddr> [ -i <ifname> ]        neighbour solicitation with <ipaddr>, forced via <ifname> if given\n");
+	fprintf(stderr, "-S <ipaddr> [ -i <ifname> ]        same as -s, marking ARP entry as permanent\n");
 	fprintf(stderr, "-Q[RrTtosfa] -i <ifname>           query network interface information about <ifname>\n");
 	fprintf(stderr, "-F[<bpf-module.o>] -i <ifname>     install/remove eBPF filter (RX)\n");
 }
@@ -213,10 +213,11 @@ static int find_host_ip(const char *host, struct in_addr *addr)
 	return 0;
 }
 
-static void solicit_neighbour(const char *host, bool permanent)
+static void solicit_neighbour(const char *host, const char *netif, bool permanent)
 {
 	struct sockaddr addr = { 0 };
 	struct sockaddr_in *sin = (struct sockaddr_in *)&addr;
+	socklen_t optlen;
 	long ret;
 	int s;
 
@@ -227,6 +228,14 @@ static void solicit_neighbour(const char *host, bool permanent)
 	s = socket(AF_INET, SOCK_DGRAM | SOCK_OOB, 0);
 	if (s < 0)
 		error(1, errno, "cannot create out-of-band UDP socket");
+
+	/*
+	 * Bind to the given device if any, to force routing via this
+	 * interface.
+	 */
+	optlen = netif ? strlen(netif) + 1 : 0;
+	if (optlen && setsockopt(s, SOL_SOCKET, SO_BINDTODEVICE, netif, optlen))
+		error(1, errno, "cannot bind UDP socket to device %s", netif);
 
 	sin->sin_family = AF_INET;
 	/* sin->sin_port is unused. */
@@ -328,7 +337,7 @@ int main(int argc, char *argv[])
 		set_bpf_filter(netif, modpath);
 
 	if (solicit)
-		solicit_neighbour(ipaddr, permanent);
+		solicit_neighbour(ipaddr, netif, permanent);
 
 	if (query)
 		query_oob_port(netif, query_type);
