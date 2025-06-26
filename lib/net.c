@@ -28,7 +28,7 @@ int evl_net_enable_port(const char *ifname, size_t poolsz, size_t bufsz)
 
 	netfd = evl_open_raw(EVL_NET_DEV);
 	if (netfd < 0)
-		return -errno;
+		return errno == ENOENT ? -ENOTSUP : -errno;
 
 	ret = ioctl(netfd, EVL_NET_OPENPORT, &devp);
 	if (ret)
@@ -41,7 +41,8 @@ int evl_net_enable_port(const char *ifname, size_t poolsz, size_t bufsz)
 
 int evl_net_disable_port(int devfd)
 {
-	return ioctl(devfd, EVL_NDEVIOC_SWITCHOFF) ? -errno : 0;
+	return ioctl(devfd, EVL_NDEVIOC_SWITCHOFF) ?
+		(errno == ENOTTY ? -EBADF : -errno) : 0;
 }
 
 int evl_net_open_port(const char *ifname)
@@ -51,7 +52,7 @@ int evl_net_open_port(const char *ifname)
 
 	fd = evl_open_raw(EVL_NET_DEV);
 	if (fd < 0)
-		return -errno;
+		return errno == ENOENT ? -ENOTSUP : -errno;
 
 	/*
 	 * Get a file descriptor to the network device for EVL-related
@@ -76,7 +77,8 @@ int evl_net_set_filter(int devfd, const char *modpath)
 
 	if (!modpath) {		/* Uninstall. */
 		progfd = -1;
-		return ioctl(devfd, EVL_NDEVIOC_SETRXEBPF, &progfd) ? -errno : 0;
+		return ioctl(devfd, EVL_NDEVIOC_SETRXEBPF, &progfd) ?
+			(errno == ENOTTY ? -EBADF : -errno) : 0;
 	}
 
 	obj = bpf_object__open_file(modpath, NULL);
@@ -95,7 +97,7 @@ int evl_net_set_filter(int devfd, const char *modpath)
 	if (prog) {
 		progfd = bpf_program__fd(prog);
 		if (ioctl(devfd, EVL_NDEVIOC_SETRXEBPF, &progfd))
-			ret = -errno;
+			ret = errno == ENOTTY ? -EBADF : -errno;
 	}
 out:
 	bpf_object__close(obj);
@@ -113,10 +115,11 @@ int evl_net_solicit(int s, const struct sockaddr *peer, int flags)
 	solicit.flags = flags;
 	ret = ioctl(s, EVL_SOCKIOC_SOLICIT, &solicit);
 
-	return ret ? -errno : 0;
+	return ret ? (errno == ENOTTY ? -EBADF : -errno) : 0;
 }
 
 int evl_net_query_port(int devfd, struct evl_net_devstat *devs)
 {
-	return ioctl(devfd, EVL_NDEVIOC_GETSTAT, devs) ? -errno : 0;
+	return ioctl(devfd, EVL_NDEVIOC_GETSTAT, devs) ?
+		(errno == ENOTTY ? -EBADF : -errno) : 0;
 }
