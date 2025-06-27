@@ -23,7 +23,7 @@
 #include <evl/sys.h>
 #include <evl/evl.h>
 
-#define short_optlist "@hedQ::p:b:F::s:S:i:"
+#define short_optlist "@hedQ::p:b:F::s::S::i:g"
 
 static const struct option options[] = {
 	{
@@ -72,6 +72,11 @@ static const struct option options[] = {
 		.val = 'Q',
 	},
 	{
+		.name = "allow-gateway",
+		.has_arg = no_argument,
+		.val = 'g',
+	},
+	{
 		.name = "help",
 		.has_arg = no_argument,
 		.val = 'h',
@@ -82,12 +87,13 @@ static const struct option options[] = {
 static void usage(const char *arg0)
 {
         fprintf(stderr, "usage: %s [options]:\n", basename(arg0));
-	fprintf(stderr, "-e -i <ifname>                     enable out-of-band port in network interface <ifname>\n");
+	fprintf(stderr, "-e -i <ifname> [-p][-b]            enable out-of-band port in network interface <ifname>\n");
 	fprintf(stderr, "   -p <pool-size>                  max number of out-of-band socket buffers (0=default)\n");
 	fprintf(stderr, "   -b <buffer-size>                size (in bytes) of out-of-band socket buffer (0=default)\n");
 	fprintf(stderr, "-d -i <ifname>                     disable out-of-band port in network interface <ifname>\n");
-	fprintf(stderr, "-s <ipaddr> [ -i <ifname> ]        neighbour solicitation with <ipaddr>, forced via <ifname> if given\n");
-	fprintf(stderr, "-S <ipaddr> [ -i <ifname> ]        same as -s, marking ARP entry as permanent\n");
+	fprintf(stderr, "-s <ipaddr> [-i <ifname>][-g]      neighbour solicitation with <ipaddr>, forced via <ifname> if given\n");
+	fprintf(stderr, "-S <ipaddr> [-i <ifname>][-g]      same as -s, marking ARP entry as permanent\n");
+	fprintf(stderr, "   -g                              allow routing to destination via gateway(s)\n");
 	fprintf(stderr, "-Q[RrTtosfa] -i <ifname>           query network interface information about <ifname>\n");
 	fprintf(stderr, "-F[<bpf-module.o>] -i <ifname>     install/remove eBPF filter (RX)\n");
 }
@@ -213,13 +219,14 @@ static int find_host_ip(const char *host, struct in_addr *addr)
 	return 0;
 }
 
-static void solicit_neighbour(const char *host, const char *netif, bool permanent)
+static void solicit_neighbour(const char *host, const char *netif,
+			bool permanent, bool allow_routing)
 {
 	struct sockaddr addr = { 0 };
 	struct sockaddr_in *sin = (struct sockaddr_in *)&addr;
 	socklen_t optlen;
+	int s, flags;
 	long ret;
-	int s;
 
 	ret = find_host_ip(host, &sin->sin_addr);
 	if (ret < 0)
@@ -239,7 +246,10 @@ static void solicit_neighbour(const char *host, const char *netif, bool permanen
 
 	sin->sin_family = AF_INET;
 	/* sin->sin_port is unused. */
-	ret = evl_net_solicit(s, &addr,	permanent ? EVL_NEIGH_PERMANENT : 0);
+	flags = permanent ? EVL_NEIGH_PERMANENT : 0;
+	if (allow_routing)
+		flags |= EVL_NEIGH_MAYROUTE;
+	ret = evl_net_solicit(s, &addr,	flags);
 	if (ret)
 		error(1, -ret, "%s did not respond", host);
 
@@ -256,7 +266,8 @@ int main(int argc, char *argv[])
 {
 	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL, *query_type;
 	bool set_filter = false, solicit = false, permanent = false,
-		enable = false, disable = false, query = false;
+		enable = false, disable = false, query = false,
+		allow_routing = false;
 	size_t poolsz = 0, bufsz = 0; /* Use defaults. */
 	int c, ret;
 	char *p;
@@ -309,6 +320,9 @@ int main(int argc, char *argv[])
 		case 'i':
 			netif = optarg;
 			break;
+		case 'g':
+			allow_routing = true;
+			break;
 		case '@':
 			printf("manage the EVL out-of-band networking stack\n");
 			return 0;
@@ -324,11 +338,15 @@ int main(int argc, char *argv[])
 	if (ret)
 		error(1, -ret, "evl_init()");
 
-	if (!(disable || enable || query || solicit || set_filter))
+	if (!(disable || enable || query || solicit || set_filter)) {
+		fprintf(stderr, "no command given\n");
 		bad_usage(argv[0]);
+	}
 
-	if ((disable || enable || query || set_filter) && !netif)
+	if ((disable || enable || query || set_filter) && !netif) {
+		fprintf(stderr, "a network interface must be specified\n");
 		bad_usage(argv[0]);
+	}
 
 	if (disable)
 		disable_oob_port(netif);
@@ -340,7 +358,7 @@ int main(int argc, char *argv[])
 		set_bpf_filter(netif, modpath);
 
 	if (solicit)
-		solicit_neighbour(ipaddr, netif, permanent);
+		solicit_neighbour(ipaddr, netif, permanent, allow_routing);
 
 	if (query)
 		query_oob_port(netif, query_type);
