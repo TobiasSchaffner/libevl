@@ -205,6 +205,11 @@ static int find_host_ip(const char *host, struct in_addr *addr)
 	struct addrinfo hints, *res;
 	int ret;
 
+	if (!strcmp(host, "broadcast")) {
+		addr->s_addr = INADDR_BROADCAST;
+		return 0;
+	}
+
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
