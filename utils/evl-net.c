@@ -23,7 +23,9 @@
 #include <evl/sys.h>
 #include <evl/evl.h>
 
-#define short_optlist "@hedQ::p:b:F::s::S::i:g"
+#define short_optlist "@hedQ::p:b:F::s::S::i:gN::n"
+
+#define SYSFS_VLAN_FILTER	"evl/net/vlans"
 
 static const struct option options[] = {
 	{
@@ -77,6 +79,16 @@ static const struct option options[] = {
 		.val = 'g',
 	},
 	{
+		.name = "set-vlan-ids",
+		.has_arg = optional_argument,
+		.val = 'N',
+	},
+	{
+		.name = "print-vlan-ids",
+		.has_arg = required_argument,
+		.val = 'n',
+	},
+	{
 		.name = "help",
 		.has_arg = no_argument,
 		.val = 'h',
@@ -96,6 +108,8 @@ static void usage(const char *arg0)
 	fprintf(stderr, "   -g                              allow routing to destination via gateway(s)\n");
 	fprintf(stderr, "-Q[RrTtosfa] -i <ifname>           query network interface information about <ifname>\n");
 	fprintf(stderr, "-F[<bpf-module.o>] -i <ifname>     install/remove eBPF filter (RX)\n");
+	fprintf(stderr, "-N[<vlan-id-list]                  add/remove VLAN id. filter (RX)\n");
+	fprintf(stderr, "-n                                 show VLAN id. filter (RX)\n");
 }
 
 static void enable_oob_port(const char *netif, size_t poolsz, size_t bufsz)
@@ -198,6 +212,9 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 		error(1, -ret, "cannot set BPF filter on %s", netif);
 
 	close(fd);
+
+	if (!modpath)
+		printf("eBPF module removed from %s\n", netif);
 }
 
 static int find_host_ip(const char *host, struct in_addr *addr)
@@ -261,6 +278,78 @@ static void solicit_neighbour(const char *host, const char *netif,
 	close(s);
 }
 
+static int open_vlan_filter(int mode)
+{
+	const char *sysfs = getenv("EVL_SYSDIR");
+	char *filter_path;
+	int ret, fd;
+
+	if (sysfs == NULL)
+		error(1, EINVAL, "EVL_SYSDIR unset -- use 'evl net' instead");
+
+	ret = asprintf(&filter_path, "%s/%s", sysfs, SYSFS_VLAN_FILTER);
+	if (ret < 0)
+		error(1, ENOMEM, "asprintf()");
+
+	fd = open(filter_path, mode);
+	if (fd < 0)
+		error(1, ENOMEM, "cannot open %s for %s",
+			filter_path, mode == O_WRONLY ? "writing" : "reading");
+
+	free(filter_path);
+
+	return fd;
+}
+
+static void set_vlan_filter(const char *vlan_list)
+{
+	ssize_t ret;
+	int fd;
+
+	fd = open_vlan_filter(O_WRONLY);
+
+	if (vlan_list)
+		ret = write(fd, vlan_list, strlen(vlan_list));
+	else
+		ret = write(fd, "", 1);
+
+	if (ret < 0)
+		error(1, -errno, "cannot set VLAN filters");
+
+	if (!vlan_list)
+		printf("VLAN filter cleared\n");
+
+	close(fd);
+}
+
+static void show_vlan_filter(void)
+{
+	ssize_t ret, count = 0;
+	char buf[BUFSIZ], *p;
+	int fd;
+
+	fd = open_vlan_filter(O_RDONLY);
+
+	do {
+		ret = read(fd, buf, sizeof(buf) - 1);
+		if (ret < 0)
+			error(1, -errno, "cannot read VLAN filters");
+		if (ret > 0) {
+			count += ret - 1;
+			buf[ret] = '\0';
+			p = strrchr(buf, '\n');
+			if (p)
+				*p = '\0';
+			printf("%.*s", (int)ret, buf);
+		}
+	} while (ret == sizeof(buf) - 1);
+
+	if (count > 0)
+		putchar('\n');
+
+	close(fd);
+}
+
 static void bad_usage(const char *arg0)
 {
 	usage(arg0);
@@ -269,10 +358,12 @@ static void bad_usage(const char *arg0)
 
 int main(int argc, char *argv[])
 {
-	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL, *query_type;
+	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL,
+		*query_type, *vlan_list = NULL;
 	bool set_filter = false, solicit = false, permanent = false,
 		enable = false, disable = false, query = false,
-		allow_routing = false;
+		allow_routing = false, set_vlans = false,
+		show_vlans = false;
 	size_t poolsz = 0, bufsz = 0; /* Use defaults. */
 	int c, ret;
 	char *p;
@@ -328,6 +419,13 @@ int main(int argc, char *argv[])
 		case 'g':
 			allow_routing = true;
 			break;
+		case 'N':
+			vlan_list = optarg;
+			set_vlans = true;
+			break;
+		case 'n':
+			show_vlans = true;
+			break;
 		case '@':
 			printf("manage the EVL out-of-band networking stack\n");
 			return 0;
@@ -343,7 +441,8 @@ int main(int argc, char *argv[])
 	if (ret)
 		error(1, -ret, "evl_init()");
 
-	if (!(disable || enable || query || solicit || set_filter)) {
+	if (!(disable || enable || query || solicit || set_filter ||
+			set_vlans || show_vlans)) {
 		fprintf(stderr, "no command given\n");
 		bad_usage(argv[0]);
 	}
@@ -361,6 +460,12 @@ int main(int argc, char *argv[])
 
 	if (set_filter)
 		set_bpf_filter(netif, modpath);
+
+	if (set_vlans)
+		set_vlan_filter(vlan_list);
+
+	if (show_vlans)
+		show_vlan_filter();
 
 	if (solicit)
 		solicit_neighbour(ipaddr, netif, permanent, allow_routing);
