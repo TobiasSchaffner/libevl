@@ -34,7 +34,7 @@ static bool degraded_mode;	/* NIC is not oob-capable. */
 struct latmus_net_rx {
 	char *packet;
 	size_t last_serial;
-	long invalid_lost;
+	unsigned long invalid_lost;
 	bool check_sequence;
 	struct latmus_measurement queuing;
 	struct latmus_measurement delivery;
@@ -60,7 +60,10 @@ struct latmus_net_desc {
 	size_t packet_size;
 	struct latmus_net_tx tx;
 	struct latmus_net_rx rx;
-	struct statistics statistics[NR_STATS];
+	union {
+		struct statistics statistics[NR_STATS];
+		struct statistics start_of_statistics;
+	};
 };
 
 static unsigned int rounds_per_sec;
@@ -449,11 +452,12 @@ static int more_net_data(struct statistics *st,
 		tx_worst = (double)nd->statistics[TX_DELIVERY].all_maxlat / 1000.0;
 	}
 
-	evl_printf("RTD|%10.3f|%10.3f|%10.3f|%10.3f|%4u|%8u|%10.3f|%10.3f|%10.3f|%10.3f\n",
+	evl_printf("RTD|%10.3f|%10.3f|%10.3f|%10.3f|%4u|%8u|%8lu|%10.3f|%10.3f|%10.3f|%10.3f\n",
 		rx_dev, rx_usr,
 		tx_dev, tx_usr,
 		spurious_inband_switches,
 		nd->statistics[TX_DELIVERY].all_overruns,
+		nd->rx.invalid_lost,
 		rx_best, rx_worst,
 		tx_best, tx_worst);
 
@@ -483,10 +487,10 @@ static void wrap_net_data_page(struct statistics *st, unsigned int round)
 		responder_cpu,
 		responder_cpu_state & EVL_CPU_ISOL ? "" : "-noisol",
 		degraded_mode ? ", DEGRADED" : "");
-	evl_printf("RTH|%10s|%10s|%10s|%10s|%4s|%8s|%10s|%10s|%10s|%10s\n",
+	evl_printf("RTH|%10s|%10s|%10s|%10s|%4s|%8s|%8s|%10s|%10s|%10s|%10s\n",
 		"--rx sched", "---rx user",
 		"--tx sched", "---tx user",
-		"-msw", "-overrun",
+		"-msw", "-overrun", "----lost",
 		"---rx best", "--rx worst",
 		"---tx best", "--tx worst");
 }
@@ -494,15 +498,18 @@ static void wrap_net_data_page(struct statistics *st, unsigned int round)
 static void print_net_summary(struct statistics *st_array, time_t duration)
 {
 	time_t t = timeout ?: duration;
+	struct latmus_net_desc *nd;
 	int n;
+
+	nd = container_of(st_array, struct latmus_net_desc, start_of_statistics);
 
 	for (n = 0; n < NR_STATS; n++)
 		if (st_array[n].all_samples == 0)
 			return;	/* No significant data. */
 
 	evl_printf("---|----------|----------|----------|----------"
-		"|---------------------------------------------------------\n"
-		"RTS|%10.3f|%10.3f|%10.3f|%10.3f|%4u|%8u|                          "
+		"|------------------------------------------------------------------\n"
+		"RTS|%10.3f|%10.3f|%10.3f|%10.3f|%4u|%8u|%8lu|                          "
 		"%.2ld:%.2ld:%.2ld/%.2ld:%.2ld:%.2ld\n",
 		(double)st_array[RX_QUEUING].all_maxlat / 1000.0,
 		(double)st_array[RX_DELIVERY].all_maxlat / 1000.0,
@@ -510,6 +517,7 @@ static void print_net_summary(struct statistics *st_array, time_t duration)
 		(double)st_array[TX_DELIVERY].all_maxlat / 1000.0,
 		spurious_inband_switches,
 		st_array[TX_DELIVERY].all_overruns,
+		nd->rx.invalid_lost,
 		(long)(duration / 3600), (long)((duration / 60) % 60),
 		(long)(duration % 60), (long)(duration / 3600),
 		(long)((t / 60) % 60), (long)(t % 60));
