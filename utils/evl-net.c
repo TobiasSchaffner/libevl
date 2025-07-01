@@ -23,7 +23,7 @@
 #include <evl/sys.h>
 #include <evl/evl.h>
 
-#define short_optlist "@hedQ::p:b:F::s::S::i:gN::n"
+#define short_optlist "@hedQ::p:b:F::s:S:i:gN::n"
 
 #define SYSFS_VLAN_FILTER	"evl/net/vlans"
 
@@ -103,8 +103,8 @@ static void usage(const char *arg0)
 	fprintf(stderr, "   -p <pool-size>                  max number of out-of-band socket buffers (0=default)\n");
 	fprintf(stderr, "   -b <buffer-size>                size (in bytes) of out-of-band socket buffer (0=default)\n");
 	fprintf(stderr, "-d -i <ifname>                     disable out-of-band port in network interface <ifname>\n");
-	fprintf(stderr, "-s <ipaddr> [-i <ifname>][-g]      neighbour solicitation with <ipaddr>, forced via <ifname> if given\n");
-	fprintf(stderr, "-S <ipaddr> [-i <ifname>][-g]      same as -s, marking ARP entry as permanent\n");
+	fprintf(stderr, "-s <host> [-i <ifname>][-g]        solicit <host> via <ifname> if given\n");
+	fprintf(stderr, "-S <host> [-i <ifname>][-g]        like -s, marking ARP entry as permanent\n");
 	fprintf(stderr, "   -g                              allow routing to destination via gateway(s)\n");
 	fprintf(stderr, "-Q[RrTtosfa] -i <ifname>           query network interface information about <ifname>\n");
 	fprintf(stderr, "-F[<bpf-module.o>] -i <ifname>     install/remove eBPF filter (RX)\n");
