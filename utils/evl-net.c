@@ -106,7 +106,7 @@ static void usage(const char *arg0)
 	fprintf(stderr, "-s <host> [-i <ifname>][-g]        solicit <host> via <ifname> if given\n");
 	fprintf(stderr, "-S <host> [-i <ifname>][-g]        like -s, marking ARP entry as permanent\n");
 	fprintf(stderr, "   -g                              allow routing to destination via gateway(s)\n");
-	fprintf(stderr, "-Q[RrTtosfa] -i <ifname>           query network interface information about <ifname>\n");
+	fprintf(stderr, "-Q[RrTtosfacx] -i <ifname>         query network interface information about <ifname>\n");
 	fprintf(stderr, "-F[<bpf-module.o>] -i <ifname>     install/remove eBPF filter (RX)\n");
 	fprintf(stderr, "-N[<vlan-id-list]                  add/remove VLAN id. filter (RX)\n");
 	fprintf(stderr, "-n                                 show VLAN id. filter (RX)\n");
@@ -162,6 +162,9 @@ static void query_oob_port(const char *netif, const char *which)
 		printf("      tx bytes: %llu\n", devs.tx_bytes);
 		printf("      skb size: %u\n", devs.skb_size);
 		printf("      skb free: %u / %u\n", devs.skb_free, devs.skb_total);
+		printf("   csum errors: %u\n", devs.csum_errors);
+		printf("      rx nomem: %u\n", devs.rx_nomem);
+		printf("      tx nomem: %u\n", devs.tx_nomem);
 	} else {
 		while (*which) {
 			switch (*which) {
@@ -188,6 +191,12 @@ static void query_oob_port(const char *netif, const char *which)
 				break;
 			case 'a':
 				printf("%s%u", space, devs.skb_total);
+				break;
+			case 'c':
+				printf("%s%u", space, devs.csum_errors);
+				break;
+			case 'x':
+				printf("%s%u %u", space, devs.rx_nomem, devs.tx_nomem);
 				break;
 			default:
 				error(1, EINVAL, "invalid query modifer '%c'", *which);
