@@ -181,7 +181,7 @@ static void query_oob_port(const char *netif, const char *which)
 				printf("%s%llu", space, devs.tx_bytes);
 				break;
 			case 'o':
-				printf("%s%u", space, devs.oob_capable);
+				printf("%s%s", space, devs.oob_capable ? "yes" : "no");
 				break;
 			case 's':
 				printf("%s%u", space, devs.skb_size);
