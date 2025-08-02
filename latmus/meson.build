@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: MIT
 
-latmon_incdir = include_directories(['.', 'zephyr/latmon/src'])
-
 latmus_sources = [
        'gpio.c',
        'latmus.c',
@@ -13,7 +11,7 @@ latmus_sources = [
 
 executable('latmus',
     latmus_sources,
+    c_args: [ '-DLATMON_NET_PORT=' + get_option('latmon-port').to_string() ],
     install: true,
-    include_directories : latmon_incdir,
     dependencies: libevl_dep
 )

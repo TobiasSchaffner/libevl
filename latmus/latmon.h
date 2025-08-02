@@ -2,14 +2,19 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Copyright (c) 2020 Philippe Gerum <rpm@xenomai.org>
+ *
+ * This file defines the message types exchanged over UDP with the
+ * latency monitor (aka 'latmon') running on the Zephyr side. This
+ * monitor observes and records the response time of the latmus
+ * program to GPIO events.
+ *
+ * See https://github.com/zephyrproject-rtos/zephyr/tree/main/subsys/net/lib/latmon.
  */
 
-#ifndef _EVL_ZEPHYR_LATMON_H
-#define _EVL_ZEPHYR_LATMON_H
+#ifndef _EVL_LATMUS_LATMON_H
+#define _EVL_LATMUS_LATMON_H
 
 #include <stdint.h>
-
-#define LATMON_NET_PORT 2306
 
 struct latmon_net_request {
 	uint32_t period_usecs;
@@ -25,4 +30,4 @@ struct latmon_net_data {
 	uint32_t samples;
 } __attribute__((__packed__));
 
-#endif /* !_EVL_ZEPHYR_LATMON_H */
+#endif /* !_EVL_LATMUS_LATMON_H */

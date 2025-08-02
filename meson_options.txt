@@ -1,2 +1,3 @@
 option('uapi', type : 'string', value : '/usr/include', description : 'path to kernel UAPI headers')
 option('install-uapi', type : 'boolean', value : true, description : 'whether to install the UAPI files')
+option('latmon-port', type : 'integer', value : 2306, description : 'latmon UDP port')
