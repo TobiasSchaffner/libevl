@@ -2,9 +2,9 @@
 What's this?
 ------------
 
-See https://evlproject.org/overview/
+See https://v4.xenomai.org/overview/
 
 How to build?
 -------------
 
-See https://evlproject.org/core/build-steps/
+See https://v4.xenomai.org/core/build-steps/

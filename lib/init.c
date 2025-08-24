@@ -116,7 +116,7 @@ static inline int generic_init(void)
 	if (EVL_ABI_PREREQ < core_info.abi_base ||
 		EVL_ABI_PREREQ > core_info.abi_current) {
 		fprintf(stderr,
-			"evl: ABI mismatch, see -ENOEXEC at https://evlproject.org/"
+			"evl: ABI mismatch, see -ENOEXEC at https://v4.xenomai.org/"
 			"core/user-api/init/#evl_init\n");
 		ret = -ENOEXEC;
 		goto fail;
