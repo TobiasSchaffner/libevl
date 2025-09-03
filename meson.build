@@ -57,6 +57,10 @@ if libevl_arch == 'aarch64'
     libevl_arch = 'arm64'
 endif
 
+if libevl_arch == 'riscv64'
+    libevl_arch = 'riscv'
+endif
+
 post_install = find_program('post-install.sh',
     dirs : libevl_scripts,
     required : true
