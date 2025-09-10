@@ -368,7 +368,7 @@ static void bad_usage(const char *arg0)
 int main(int argc, char *argv[])
 {
 	const char *netif = NULL, *modpath = NULL, *ipaddr = NULL,
-		*query_type, *vlan_list = NULL;
+		*query_type = NULL, *vlan_list = NULL;
 	bool set_filter = false, solicit = false, permanent = false,
 		enable = false, disable = false, query = false,
 		allow_routing = false, set_vlans = false,
