@@ -48,8 +48,9 @@ install_headers(
 )
 
 libevl_net_headers = [
-    'evl/net/socket.h',
     'evl/net/device.h',
+    'evl/net/net.h',
+    'evl/net/socket.h',
 ]
 
 install_headers(
