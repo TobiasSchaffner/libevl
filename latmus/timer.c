@@ -159,8 +159,10 @@ void run_timer_test(size_t histogram_cells)
 	sigwait(&sigmask, &sig);
 	pthread_cancel(sitter);
 	pthread_join(sitter, NULL);
-	pthread_cancel(responder);
-	pthread_join(responder, NULL);
+	if (test_ulat) {
+		pthread_cancel(responder);
+		pthread_join(responder, NULL);
+	}
 	pthread_cancel(logger);
 	pthread_join(logger, NULL);
 
