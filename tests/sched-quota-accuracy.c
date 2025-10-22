@@ -125,6 +125,7 @@ static void *quota_thread(void *arg)
 	set_thread_affinity();
 
 	loops = crunch_per_sec / 100; /* yield every 10 ms */
+
 	t->count = 0;
 
 	__Tcall_assert(t->efd, evl_attach_self("sched-quota-accuracy:%d.%d",
@@ -240,16 +241,20 @@ static double run_quota(int quota)
 
 	for (n = 0, count = 0; n < nrthreads; n++) {
 		count += threads[n].count;
+		do_trace("CPU%d: done quota_thread[%d], count=%lu",
+			test_cpu, n, threads[n].count);
 		__Tcall_assert(ret, evl_demote_thread(threads[n].efd));
 	}
 
-	percent = ((double)count / TEST_SECS) * 100.0 / loops_per_sec;
-
-	for (n = 0; n < nrthreads; n++) {
-		do_trace("CPU%d: done quota_thread[%d], count=%lu",
-			test_cpu, n, threads[n].count);
+	for (n = 0; n < nrthreads; n++)
 		pthread_join(threads[n].tid, NULL);
-	}
+
+	/*
+	 * Percentage of completion of the SCHED_QUOTA run for the
+	 * given quota value, compared to the calibration run which
+	 * underwent the SCHED_FIFO policy.
+	 */
+	percent = ((double)count / TEST_SECS) * 100.0 / loops_per_sec;
 
 	__Tcall_assert(ret, cleanup_group());
 
@@ -286,7 +291,7 @@ static unsigned long long calibrate(void)
 
 	timespec_sub(&delta, &end, &start);
 	ns = delta.tv_sec * ONE_BILLION + delta.tv_nsec;
-	crunch_per_sec = (unsigned long long)((double)ONE_BILLION / (double)ns * crunch_loops);
+	crunch_per_sec = (((unsigned long long)count) * ONE_BILLION) / ns;
 
 	for (n = 0; n < nrthreads; n++) {
 		create_fifo_thread(n);
@@ -304,13 +309,14 @@ static unsigned long long calibrate(void)
 
 	done = true;
 
-	for (n = 0, lps = 0; n < nrthreads; n++) {
-		lps += threads[n].count;
+	for (n = 0, lps = 0; n < nrthreads; n++)
 		__Tcall_assert(ret, evl_demote_thread(threads[n].efd));
-	}
 
 	for (n = 0; n < nrthreads; n++)
 		__Tcall_assert(ret, pthread_join(threads[n].tid, NULL));
+
+	for (n = 0, lps = 0; n < nrthreads; n++)
+		lps += threads[n].count;
 
 	started = false;
 	done = false;
@@ -386,12 +392,21 @@ int main(int argc, char *argv[])
 
 	effective = run_quota(quota);
 
-	if (!verbose)	  /* Percentage of quota actually obtained. */
-		emit_info("%.1f%%", effective * 100.0 / (double)quota);
-	else
+	if (verbose)	  /* Percentage of quota actually obtained. */
 		do_trace("CPU%d: %d thread%s: cap=%d%%, effective=%.1f%%",
-			test_cpu, nrthreads, nrthreads > 1 ?
-			"s": "", quota, effective);
+			test_cpu,
+			nrthreads,
+			nrthreads > 1 ?	"s": "",
+			quota,
+			effective);
+
+	/*
+	 * The accuracy value is the alignment of the observed runtime
+	 * of threads within a SCHED_QUOTA group compared to the
+	 * allotted (theoretical) quota, expressed as a percentage
+	 * (i.e. 100% is the best accuracy).
+	 */
+	emit_info("%.1f%%", effective * 100.0 / (double)quota);
 
 	return EXIT_NO_STATUS;
 }
