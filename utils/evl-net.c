@@ -221,9 +221,6 @@ static void set_bpf_filter(const char *netif, const char *modpath)
 		error(1, -ret, "cannot set BPF filter on %s", netif);
 
 	close(fd);
-
-	if (!modpath)
-		printf("eBPF module removed from %s\n", netif);
 }
 
 static int find_host_ip(const char *host, struct in_addr *addr)
