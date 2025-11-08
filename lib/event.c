@@ -238,15 +238,16 @@ int evl_timedwait_event(struct evl_event *evt,
 		 * event is still valid but was left unguarded on
 		 * return from WAIT: issue UNWAIT to recover and grab
 		 * the mutex back.
+		 *
+		 * Any error aside of EINTR received from WAIT should
+		 * be reported as a dysfunction of some sort, but we
+		 * have to do so after trying to grab the guard back
+		 * via UNWAIT. Cache the errno value across this call.
 		 */
+		ret = errno;
 		unwait_event(&unwait);
-
-		/*
-		 * This should never happen, but in case it does let's
-		 * go for robustness and report back.
-		 */
-		if (errno != EINTR)
-			return -errno;
+		if (ret != EINTR)
+			return -ret;
 
 		/*
 		 * If oob_ioctl() failed with EINTR, we either:
