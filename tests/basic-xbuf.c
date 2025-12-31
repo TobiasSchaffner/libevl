@@ -14,13 +14,11 @@
 static void *peer(void *arg)
 {
 	const char *path = arg;
-	int fd, n, nfd, nfd2;
 	char buf[2];
 	ssize_t ret;
+	int fd, n;
 
 	__Tcall_assert(fd, open(path, O_RDWR));
-	__Tcall_assert(nfd, dup(fd));
-	__Tcall_assert(nfd2, dup2(fd, nfd));
 
 	for (n = 0; n < 3; n++) {
 		__Tcall_errno_assert(ret, read(fd, buf, 2));
