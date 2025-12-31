@@ -13,6 +13,7 @@ test_programs = [
     'detach-self',
     'duplicate-element',
     'element-visibility',
+    'file-dup',
     'fpu-preload',
     'fpu-stress',
     'heap-torture',
