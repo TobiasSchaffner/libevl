@@ -7,11 +7,12 @@ if test \! -d $EVL_TESTDIR; then
 fi
 
 usage() {
-   echo >&2 "usage: $(basename $1) [-l][-L][-k][-h] [test-list]"
+   echo >&2 "usage: $(basename $1) [-l][-L][-k][r][-h] [test-list]"
 }
 
 help=false
 keep_going=false
+repeat=false
 do_list=false
 full_path=false
 test_args=false
@@ -25,6 +26,8 @@ do
     else
 	case "$opt" in
 	    -k) keep_going=true;
+		shift;;
+	    -r) repeat=true;
 		shift;;
 	    -h) help=true;
 		shift;;
@@ -70,25 +73,28 @@ fi
 
 result=0
 
-for t in $test_list; do
-    test \! -x $t && echo "$(basename $0): $(basename $t): no such test" && exit 2
-    # Swap stdout<->stderr for the test, capturing stderr into $log.
-    log=$($t $test_arg_list 3>&1 1>&2 2>&3)
-    status=$?
-    if test $status = 43; then
-	echo "$(basename $t): $log"
-    else
-	test -n "$log" && echo "$log"
-	if test $status = 0; then
-	    echo "$(basename $t): OK"
-	elif test $status = 42; then
-	    echo "$(basename $t): no kernel support"
-	else
-	    echo "** $(basename $t): BROKEN"
-	    result=$status
-	    test x$keep_going = xfalse && break
-	fi
-    fi
+while : ; do
+      for t in $test_list; do
+	  test \! -x $t && echo "$(basename $0): $(basename $t): no such test" && exit 2
+	  # Swap stdout<->stderr for the test, capturing stderr into $log.
+	  log=$($t $test_arg_list 3>&1 1>&2 2>&3)
+	  status=$?
+	  if test $status = 43; then
+	      echo "$(basename $t): $log"
+	  else
+	      test -n "$log" && echo "$log"
+	      if test $status = 0; then
+		  echo "$(basename $t): OK"
+	      elif test $status = 42; then
+		  echo "$(basename $t): no kernel support"
+	      else
+		  echo "** $(basename $t): BROKEN"
+		  result=$status
+		  test x$keep_going = xfalse && break
+	      fi
+	  fi
+      done
+      test x$repeat = xfalse && break
 done
 
 exit $result
