@@ -223,52 +223,32 @@ int evl_timedwait_event(struct evl_event *evt,
 	unwait.ureq.gatefd = req.gatefd;
 	unwait.efd = evt->u.active.efd;
 
-	for (;;) {
-		req.status = -EINVAL;
-		req.value = 0;		/* dummy */
-		pthread_cleanup_push(unwait_event, &unwait);
-		ret = oob_ioctl(evt->u.active.efd, EVL_MONIOC_WAIT, &req);
-		pthread_cleanup_pop(0);
+	req.status = -EINVAL;
+	req.value = 0;		/* dummy */
+	pthread_cleanup_push(unwait_event, &unwait);
+	ret = oob_ioctl(evt->u.active.efd, EVL_MONIOC_WAIT, &req);
+	pthread_cleanup_pop(0);
 
-		if (!ret || errno == EIDRM)
-			return req.status;
+	if (!ret || errno == EIDRM)
+		return req.status;
 
-		/*
-		 * If oob_ioctl() failed for any reason but EIDRM, the
-		 * event is still valid but was left unguarded on
-		 * return from WAIT: issue UNWAIT to recover and grab
-		 * the mutex back.
-		 *
-		 * Any error aside of EINTR received from WAIT should
-		 * be reported as a dysfunction of some sort, but we
-		 * have to do so after trying to grab the guard back
-		 * via UNWAIT. Cache the errno value across this call.
-		 */
-		ret = errno;
-		unwait_event(&unwait);
-		if (ret != EINTR)
-			return -ret;
+	/*
+	 * If oob_ioctl() failed for any reason but EIDRM, the event
+	 * is still valid but was left unguarded on return from
+	 * MONIOC_WAIT, we must issue MONIOC_UNWAIT to recover and
+	 * grab the mutex back.
+	 *
+	 * If oob_ioctl() failed with EINTR, we got forcibly unblocked
+	 * for handling a signal or any other reason while waiting for
+	 * the event (leaving it unguarded) or reacquiring the mutex,
+	 * in which case we return success since spurious wake ups are
+	 * deemed ok, hoping for the next call to go to
+	 * completion. Any other error is reported verbatim.
+	 */
+	ret = errno;
+	unwait_event(&unwait);
 
-		/*
-		 * If oob_ioctl() failed with EINTR, we either:
-		 *
-		 * - received a signal while waiting for the event
-		 * (req.status == 0, SA_RESTART is disabled for the
-		 * WAIT request). We retry the wait loop.
-		 *
-		 * - got forcibly unblocked while waiting for the
-		 * event (req.status == -EINTR). The call returns
-		 * immediately with the same status.
-		 *
-		 * - received a signal or got forcibly unblocked while
-		 * trying to reacquire the lock once the event was
-		 * successfully received (req.status ==
-		 * -EAGAIN). Since UNWAIT was performed already, the
-		 * call is deemed successful.
-		 */
-		if (req.status)
-			return req.status == -EAGAIN ? 0 : req.status;
-	}
+	return ret == EINTR ? 0 : -ret;
 }
 
 int evl_wait_event(struct evl_event *evt, struct evl_mutex *mutex)
