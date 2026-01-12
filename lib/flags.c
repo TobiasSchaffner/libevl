@@ -160,7 +160,6 @@ static int do_timedwait_flags(struct evl_flags *flg,
 
 	req.gatefd = -1;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout, kts);
-	req.status = -EINVAL;
 	req.value = bits;
 
 	ret = oob_ioctl(flg->u.active.efd,
@@ -168,9 +167,6 @@ static int do_timedwait_flags(struct evl_flags *flg,
 			EVL_MONIOC_WAIT, &req);
 	if (ret)
 		return -errno;
-
-	if (req.status)
-		return req.status;
 
 	if (r_bits)
 		*r_bits = req.value;

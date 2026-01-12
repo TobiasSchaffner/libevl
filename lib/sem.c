@@ -180,12 +180,11 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 
 	req.gatefd = -1;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout, kts);
-	req.status = -EINVAL;
 	req.value = 0;		/* dummy */
 
 	ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_WAIT, &req);
 
-	return ret ? -errno : req.status;
+	return ret ? -errno : 0;
 }
 
 int evl_get_sem(struct evl_sem *sem)

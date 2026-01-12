@@ -223,21 +223,25 @@ int evl_timedwait_event(struct evl_event *evt,
 	unwait.ureq.gatefd = req.gatefd;
 	unwait.efd = evt->u.active.efd;
 
-	req.status = -EINVAL;
-	req.value = 0;		/* dummy */
+	req.value = 0;		/* Only to please valgrind. */
 	pthread_cleanup_push(unwait_event, &unwait);
 	ret = oob_ioctl(evt->u.active.efd, EVL_MONIOC_WAIT, &req);
 	pthread_cleanup_pop(0);
 
-	if (!ret || errno == EIDRM)
-		return req.status;
+	if (!ret)
+		return 0;
 
 	/*
-	 * If oob_ioctl() failed for any reason but EIDRM, the event
-	 * is still valid but was left unguarded on return from
-	 * MONIOC_WAIT, we must issue MONIOC_UNWAIT to recover and
-	 * grab the mutex back.
-	 *
+	 * If oob_ioctl() failed for any reason but EIDRM or EPERM,
+	 * the event is still valid and we should be allowed to lock
+	 * the mutex guarding it, so we must issue MONIOC_UNWAIT to
+	 * grab the mutex back for recovery.
+	 */
+	ret = -errno;
+	if (ret != -EIDRM && ret != -EPERM)
+		unwait_event(&unwait);
+
+	/*
 	 * If oob_ioctl() failed with EINTR, we got forcibly unblocked
 	 * for handling a signal or any other reason while waiting for
 	 * the event (leaving it unguarded) or reacquiring the mutex,
@@ -245,10 +249,7 @@ int evl_timedwait_event(struct evl_event *evt,
 	 * deemed ok, hoping for the next call to go to
 	 * completion. Any other error is reported verbatim.
 	 */
-	ret = errno;
-	unwait_event(&unwait);
-
-	return ret == EINTR ? 0 : -ret;
+	return ret == -EINTR ? 0 : ret;
 }
 
 int evl_wait_event(struct evl_event *evt, struct evl_mutex *mutex)
