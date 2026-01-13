@@ -7,7 +7,7 @@ if test \! -d $EVL_TESTDIR; then
 fi
 
 usage() {
-   echo >&2 "usage: $(basename $1) [-l][-L][-k][-r][-h] [test-list]"
+   echo >&2 "usage: $(basename $1) [-l][-L][-k][-r][-h][--stress-cmd cmd][--stress-out file] [test-list]"
 }
 
 help=false
@@ -18,6 +18,9 @@ full_path=false
 test_args=false
 test_arg_list=
 test_list=
+stress_cmd=
+stress_pid=
+stress_out=/dev/null
 
 while test $# -gt 0
 do
@@ -37,6 +40,10 @@ do
 	    -L) full_path=true;
 		do_list=true;
 		shift;;
+	    --stress-cmd) stress_cmd="$2";
+		shift 2;;
+	    --stress-out) stress_out="$2";
+		shift 2;;
 	    --) test_args=true
 		shift;;
 	    -@) echo "run the EVL tests"
@@ -48,6 +55,27 @@ do
 	esac
     fi
 done
+
+stop_stress() {
+    trap - EXIT INT TERM
+    if test -n "$stress_pid"; then
+        kill -TERM -$stress_pid 2>/dev/null
+        # Give the process up to one second to terminate gracefully
+        for i in $(seq 10); do kill -0 -$stress_pid 2>/dev/null || break; sleep 0.1; done
+        kill -KILL -$stress_pid 2>/dev/null
+        wait $stress_pid 2>/dev/null
+    fi
+    exit
+}
+
+start_stress() {
+    if test -n "$stress_cmd"; then
+        trap 'stop_stress' EXIT INT TERM
+        setsid $stress_cmd </dev/null >"$stress_out" &
+        stress_pid=$!
+        sleep 1 # Give stress command time to start
+    fi
+}
 
 if test x$help = xtrue; then
    usage $0
@@ -77,6 +105,8 @@ if test x$do_list = xtrue; then
    done
    exit 0
 fi
+
+start_stress
 
 result=0
 
