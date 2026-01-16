@@ -7,7 +7,7 @@ if test \! -d $EVL_TESTDIR; then
 fi
 
 usage() {
-   echo >&2 "usage: $(basename $1) [-l][-L][-k][r][-h] [test-list]"
+   echo >&2 "usage: $(basename $1) [-l][-L][-k][-r][-h] [test-list]"
 }
 
 help=false
@@ -19,12 +19,13 @@ test_args=false
 test_arg_list=
 test_list=
 
-for opt
+while test $# -gt 0
 do
     if test x$test_args = xtrue; then
-	test_arg_list="$test_arg_list $opt"
+	test_arg_list="$test_arg_list $1"
+	shift
     else
-	case "$opt" in
+	case "$1" in
 	    -k) keep_going=true;
 		shift;;
 	    -r) repeat=true;
@@ -42,7 +43,8 @@ do
 	        exit 0;;
 	    -*) usage $0
 		exit 1;;
-	    *)  test_list="$test_list $(eval echo $EVL_TESTDIR/$opt)"
+	    *)  test_list="$test_list $(eval echo $EVL_TESTDIR/$1)"
+		shift;;
 	esac
     fi
 done
