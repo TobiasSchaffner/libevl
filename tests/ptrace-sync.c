@@ -137,7 +137,7 @@ static struct dialog {
 	const char *expect;
 	const char *send;
 } dialog[] = {
-	{ "^Reading symbols from .*", "set prompt \\001(gdb)\\n\\002" },
+	{ "^Reading symbols from .*", "set prompt (gdb)\\n" },
 	{ ".*(gdb).*", "set env __EVL_DEBUGGEE__=1" },
 	{ "(gdb)", "b bp" },
 	{ "^Breakpoint 1 at .*: bp\\.", "r" },
