@@ -77,6 +77,7 @@ test_programs = [
     'simple-clone',
     'stax-lock',
     'stax-warn',
+    'thread-demote',
     'thread-mode-bits',
 ]
 
