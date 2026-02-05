@@ -163,7 +163,7 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 	struct evl_monitor_waitreq req;
 	struct __evl_timespec kts;
 	fundle_t current;
-	int ret;
+	int mode, ret;
 
 	current = __evl_get_current();
 	if (current == EVL_NO_HANDLE)
@@ -173,10 +173,19 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 	if (ret)
 		return ret;
 
-	state = sem->u.active.state;
-	ret = try_get(state);
-	if (ret != -EAGAIN)
-		return ret;
+	/*
+	 * Threads running in-band must take the slow path in order to
+	 * switch oob prior to decrementing the semaphore, except
+	 * weakly scheduled ones for which in-band is the nominal
+	 * mode.
+	 */
+	mode = __evl_get_current_mode();
+	if (!(mode & EVL_T_INBAND) || (mode & EVL_T_WEAK)) {
+		state = sem->u.active.state;
+		ret = try_get(state);
+		if (ret != -EAGAIN)
+			return ret;
+	}
 
 	req.gatefd = -1;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout, kts);
