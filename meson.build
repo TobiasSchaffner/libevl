@@ -42,6 +42,12 @@ cxx = meson.get_compiler('cpp')
 cxx_flags = common_flags
 add_project_arguments(cxx.get_supported_arguments(cxx_flags), language: 'cpp')
 
+if cc.sizeof('time_t',
+	args : ['-D_TIME_BITS=64', '-D_FILE_OFFSET_BITS=64'],
+	prefix : '#include <time.h>') < 8
+    error('libc is not y2038-safe')
+endif
+
 pthread_dep = dependency('threads')
 
 # Do some architecture name remapping

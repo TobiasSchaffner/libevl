@@ -208,7 +208,6 @@ int evl_timedwait_event(struct evl_event *evt,
 {
 	struct evl_monitor_waitreq req;
 	struct unwait_data unwait;
-	struct __evl_timespec kts;
 	int ret;
 
 	if (mutex->magic != __MUTEX_ACTIVE_MAGIC)
@@ -219,7 +218,7 @@ int evl_timedwait_event(struct evl_event *evt,
 		return ret;
 
 	req.gatefd = mutex->u.active.efd;
-	req.timeout_ptr = __evl_ktimespec_ptr64(timeout, kts);
+	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	unwait.ureq.gatefd = req.gatefd;
 	unwait.efd = evt->u.active.efd;
 

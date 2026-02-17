@@ -146,7 +146,6 @@ static int do_timedwait_flags(struct evl_flags *flg,
 			int *r_bits)
 {
 	struct evl_monitor_waitreq req;
-	struct __evl_timespec kts;
 	fundle_t current;
 	int ret;
 
@@ -159,7 +158,7 @@ static int do_timedwait_flags(struct evl_flags *flg,
 		return ret;
 
 	req.gatefd = -1;
-	req.timeout_ptr = __evl_ktimespec_ptr64(timeout, kts);
+	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	req.value = bits;
 
 	ret = oob_ioctl(flg->u.active.efd,

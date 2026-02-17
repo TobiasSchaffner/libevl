@@ -19,14 +19,22 @@
 #include <evl/net/socket.h>
 #include "internal.h"
 
-static const struct timespec zerotime;
+static void copy_timeout(struct __evl_timespec *to, const struct timespec *from)
+{
+	if (from) {
+		to->tv_sec = from->tv_sec;
+		to->tv_nsec = from->tv_nsec;
+	} else {
+		to->tv_sec = 0;
+		to->tv_nsec = 0;
+	}
+}
 
 ssize_t oob_recvmsg(int sockfd, struct oob_msghdr *msghdr,
 		const struct timespec *timeout,
 		int flags)
 {
 	struct user_oob_msghdr u_msghdr;
-	struct __evl_timespec kts;
 	long ret;
 
 	u_msghdr.iov_ptr = __evl_ptr64(msghdr->msg_iov);
@@ -37,8 +45,7 @@ ssize_t oob_recvmsg(int sockfd, struct oob_msghdr *msghdr,
 	u_msghdr.namelen = (__u32)msghdr->msg_namelen;
 	u_msghdr.count = 0;
 	u_msghdr.flags = flags;	/* in/out */
-	u_msghdr.timeout = timeout ? *__evl_ktimespec(timeout, kts) :
-		*__evl_ktimespec(&zerotime, kts);
+	copy_timeout(&u_msghdr.timeout, timeout);
 
 	ret = oob_ioctl(sockfd, EVL_SOCKIOC_RECVMSG, &u_msghdr);
 	if (ret)
@@ -56,7 +63,6 @@ ssize_t oob_sendmsg(int sockfd, const struct oob_msghdr *msghdr,
 		int flags)
 {
 	struct user_oob_msghdr u_msghdr;
-	struct __evl_timespec kts;
 	long ret;
 
 	u_msghdr.iov_ptr = __evl_ptr64(msghdr->msg_iov);
@@ -67,8 +73,7 @@ ssize_t oob_sendmsg(int sockfd, const struct oob_msghdr *msghdr,
 	u_msghdr.namelen = (__u32)msghdr->msg_namelen;
 	u_msghdr.count = 0;
 	u_msghdr.flags = flags;	/* in */
-	u_msghdr.timeout = timeout ? *__evl_ktimespec(timeout, kts) :
-		*__evl_ktimespec(&zerotime, kts);
+	copy_timeout(&u_msghdr.timeout, timeout);
 
 	ret = oob_ioctl(sockfd, EVL_SOCKIOC_SENDMSG, &u_msghdr);
 	if (ret)

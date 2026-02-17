@@ -35,18 +35,15 @@ int evl_set_timer(int efd,
 		const struct itimerspec *value,
 		struct itimerspec *ovalue)
 {
-	struct __evl_itimerspec kits, koits;
 	struct evl_timerfd_setreq sreq;
 
-	sreq.value_ptr = __evl_kitimerspec_ptr64(value, kits);
-	sreq.ovalue_ptr = __evl_kitimerspec_ptr64(ovalue, koits);
+	sreq.value_ptr = __evl_kitimerspec_ptr64(value);
+	sreq.ovalue_ptr = __evl_kitimerspec_ptr64(ovalue);
 
 	return __evl_conforming_io(efd, ioctl, EVL_TFDIOC_SET, &sreq);
 }
 
 int evl_get_timer(int efd, struct itimerspec *value)
 {
-	struct __evl_itimerspec kits;
-
-	return __evl_conforming_io(efd, ioctl, EVL_TFDIOC_GET, __evl_kitimerspec(value, kits));
+	return __evl_conforming_io(efd, ioctl, EVL_TFDIOC_GET, value);
 }

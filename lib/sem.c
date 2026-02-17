@@ -161,7 +161,6 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 {
 	struct evl_monitor_state *state;
 	struct evl_monitor_waitreq req;
-	struct __evl_timespec kts;
 	fundle_t current;
 	int mode, ret;
 
@@ -188,7 +187,7 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 	}
 
 	req.gatefd = -1;
-	req.timeout_ptr = __evl_ktimespec_ptr64(timeout, kts);
+	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	req.value = 0;		/* dummy */
 
 	ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_WAIT, &req);

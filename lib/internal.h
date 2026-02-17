@@ -13,64 +13,8 @@
 #include <evl/thread-abi.h>
 
 #define __evl_ptr64(__ptr)	((__u64)(uintptr_t)(__ptr))
-
-#if __WORDSIZE == 64
-/*
- * On a 64bit CPU, we may coerce the standard timespec to an
- * __evl_timespec since both are deemed compatible bitwise.
- *
- * CAUTION: in 32bit mode with __USE_TIME_BITS64 set, struct timespec
- * is NOT strictly bitwise compatible with __evl_timespec because the
- * nanosecond field is only 32bit long, padded to a 64bit size with an
- * anon 32bit word. We can't pass the kernel a struct containing 32bit
- * of possibly uninit memory, so we have to fall back to bouncing the
- * user timespec to a sane __evl_timespec. Oh, well...
- */
-#define __evl_ktimespec(__ts, __kts)			\
-	({						\
-		(void)__kts;				\
-		(struct __evl_timespec *)__ts;		\
-	})
-#define __evl_kitimerspec(__its, __kits)		\
-	({						\
-		(void)__kits;				\
-		(struct __evl_itimerspec *)__its;	\
-	})
-#else
-/*
- * Bummer, we have to bounce the user timespec to an
- * __evl_timespec. Downside of it: we might get SIGSEGV if __ts is an
- * invalid pointer instead of -EFAULT as one would expect. Upside:
- * this interface won't break user code which did not switch to
- * timespec64, which would be the only reasonable thing to do when
- * support for y2038 is generally available from *libc.
- */
-#define __evl_ktimespec(__ts, __kts)			\
-	({						\
-		__kts.tv_sec = (__ts)->tv_sec;		\
-		__kts.tv_nsec = (__ts)->tv_nsec;	\
-		&__kts;					\
-	})
-#define __evl_kitimerspec(__its, __kits)				\
-	({								\
-		struct __evl_itimerspec *__kitp = NULL;			\
-		struct __evl_timespec __kts;				\
-		if (__its) {						\
-			__kits.it_value = *__evl_ktimespec(		\
-				&(__its)->it_value, __kts);		\
-			__kits.it_interval = *__evl_ktimespec(		\
-				&(__its)->it_interval, __kts);		\
-			__kitp = &__kits;				\
-		}							\
-		__kitp;							\
-	})
-#endif
-
-#define __evl_ktimespec_ptr64(__ts, __kts)	\
-	__evl_ptr64(__evl_ktimespec(__ts, __kts))
-
-#define __evl_kitimerspec_ptr64(__its, __kits)	\
-	__evl_ptr64(__evl_kitimerspec(__its, __kits))
+#define __evl_ktimespec_ptr64(__ts)	__evl_ptr64(__ts)
+#define __evl_kitimerspec_ptr64(__its)	__evl_ptr64(__its)
 
 /* Enable dlopen() on libevl.so. */
 #define EVL_TLS_MODEL	"global-dynamic"

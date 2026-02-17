@@ -303,7 +303,6 @@ int evl_timedlock_mutex(struct evl_mutex *mutex,
 			const struct timespec *timeout)
 {
 	struct evl_monitor_state *gst;
-	struct __evl_timespec kts;
 	int ret;
 
 	ret = try_lock(mutex);
@@ -311,8 +310,7 @@ int evl_timedlock_mutex(struct evl_mutex *mutex,
 		return ret;
 
 	do
-		ret = oob_ioctl(mutex->u.active.efd, EVL_MONIOC_ENTER,
-				__evl_ktimespec(timeout, kts));
+		ret = oob_ioctl(mutex->u.active.efd, EVL_MONIOC_ENTER, timeout);
 	while (ret && errno == EINTR);
 
 	if (ret == 0) {
