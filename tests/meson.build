@@ -22,6 +22,7 @@ test_programs = [
     'monitor-deadlock',
     'monitor-deboost-stress',
     'monitor-event',
+    'monitor-event-sigrel',
     'monitor-event-targeted',
     'monitor-event-untrack',
     'monitor-flags',
