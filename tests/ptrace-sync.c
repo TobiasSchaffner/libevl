@@ -39,7 +39,14 @@
  *    threads (i.e. the high priority one resumes first and so on).
  */
 
-#define CONCURRENCY  2
+#define CONCURRENCY	2
+
+/*
+ * Virt machines without hw support might be extremely slow,
+ * especially with KASAN and/or LOCKDEP enabled. Allow for 60s before
+ * timing out in a dialog.
+ */
+#define DIALOG_TIMEOUT	60
 
 static struct evl_sem handshake;
 static struct evl_event barrier;
@@ -161,7 +168,7 @@ static int consume_and_match(FILE *fp, const char *expect, bool verbose)
 		return ret;
 
 	for (;;) {
-		alarm(10);	/* Bail out after 10s if unresponsive. */
+		alarm(DIALOG_TIMEOUT);
 		p = fgets(buf, sizeof(buf), fp);
 		alarm(0);
 
@@ -201,8 +208,13 @@ static int send_next_command(FILE *fp, const char *send, bool verbose)
 	return ret;
 }
 
+#define TIMEOUT_MSG  "<timeout waiting for gdb>\n"
+
 static void timeout(int sig)
 {
+	ssize_t ret = write(1, TIMEOUT_MSG, sizeof(TIMEOUT_MSG) - 1);
+	(void)ret;
+	kill(0, SIGKILL);	/* Terminate gdb the hard way. */
 	_exit(EXIT_FAILURE);
 }
 
@@ -312,6 +324,9 @@ int main(int argc, char *argv[])
 		perror("pipe");
 		return EXIT_FAILURE;
 	}
+
+	/* Move to our own process group (see the timeout handler). */
+	setsid();
 
 	switch (fork()) {
 	case 0:
