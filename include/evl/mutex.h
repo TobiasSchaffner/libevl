@@ -9,10 +9,7 @@
 
 #include <time.h>
 #include <evl/compiler.h>
-#include <evl/atomic.h>
-#include <evl/types-abi.h>
-#include <evl/monitor-abi.h>
-#include <evl/factory-abi.h>
+#include <evl/intrinsics/gate.h>
 
 #define EVL_MUTEX_NORMAL     (0 << 0)
 #define EVL_MUTEX_RECURSIVE  (1 << 0)
@@ -22,20 +19,16 @@
 
 struct evl_mutex {
 	unsigned int magic;
+	struct evli_monitor gate;
 	union {
 		struct {
-			fundle_t fundle;
-			__u32 sstate_offset;
 			int efd;
-			int monitor : 2,
-			    protocol : 4;
 		} active;
 		struct {
 			const char *name;
 			int clockfd;
 			unsigned int ceiling;
 			int flags;
-			int monitor : 2;
 		} uninit;
 	} u;
 };
@@ -49,7 +42,6 @@ struct evl_mutex {
 				.clockfd = (__clockfd),			\
 				.ceiling = (__ceiling),			\
 				.flags = (__flags),			\
-				.monitor = EVL_MONITOR_GATE,		\
 			}						\
 		}							\
 	}

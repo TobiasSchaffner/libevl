@@ -47,6 +47,17 @@ install_headers(
     subdir : 'evl'
 )
 
+libevl_intrinsics_headers = [
+    'evl/intrinsics/event.h',
+    'evl/intrinsics/gate.h',
+    'evl/intrinsics/monitor.h',
+]
+
+install_headers(
+    libevl_intrinsics_headers,
+    subdir : 'evl/intrinsics'
+)
+
 libevl_net_headers = [
     'evl/net/device.h',
     'evl/net/net.h',

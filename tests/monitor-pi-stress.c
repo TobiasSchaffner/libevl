@@ -16,6 +16,7 @@
 #include <evl/mutex.h>
 #include <evl/event.h>
 #include <evl/clock.h>
+#include <evl/atomic.h>
 #include "helpers.h"
 
 #define A_PRIO  4

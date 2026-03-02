@@ -8,20 +8,15 @@
 #define _EVL_EVENT_H
 
 #include <time.h>
-#include <linux/types.h>
-#include <evl/compiler.h>
-#include <evl/atomic.h>
 #include <evl/mutex.h>
-#include <evl/types-abi.h>
-#include <evl/monitor-abi.h>
 #include <evl/clock-abi.h>
+#include <evl/intrinsics/event.h>
 
 struct evl_event {
 	unsigned int magic;
+	struct evli_monitor event;
 	union {
 		struct {
-			fundle_t fundle;
-			__u32 sstate_offset;
 			int efd;
 		} active;
 		struct {
