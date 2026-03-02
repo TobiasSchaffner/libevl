@@ -26,7 +26,7 @@ struct evl_flags {
 		} uninit;
 		struct {
 			fundle_t fundle;
-			struct evl_monitor_state *state;
+			__u32 sstate_offset;
 			int efd;
 		} active;
 	} u;

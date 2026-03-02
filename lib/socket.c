@@ -19,17 +19,6 @@
 #include <evl/net/socket.h>
 #include "internal.h"
 
-static void copy_timeout(struct __evl_timespec *to, const struct timespec *from)
-{
-	if (from) {
-		to->tv_sec = from->tv_sec;
-		to->tv_nsec = from->tv_nsec;
-	} else {
-		to->tv_sec = 0;
-		to->tv_nsec = 0;
-	}
-}
-
 ssize_t oob_recvmsg(int sockfd, struct oob_msghdr *msghdr,
 		const struct timespec *timeout,
 		int flags)
@@ -45,7 +34,7 @@ ssize_t oob_recvmsg(int sockfd, struct oob_msghdr *msghdr,
 	u_msghdr.namelen = (__u32)msghdr->msg_namelen;
 	u_msghdr.count = 0;
 	u_msghdr.flags = flags;	/* in/out */
-	copy_timeout(&u_msghdr.timeout, timeout);
+	u_msghdr.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 
 	ret = oob_ioctl(sockfd, EVL_SOCKIOC_RECVMSG, &u_msghdr);
 	if (ret)
@@ -73,7 +62,7 @@ ssize_t oob_sendmsg(int sockfd, const struct oob_msghdr *msghdr,
 	u_msghdr.namelen = (__u32)msghdr->msg_namelen;
 	u_msghdr.count = 0;
 	u_msghdr.flags = flags;	/* in */
-	copy_timeout(&u_msghdr.timeout, timeout);
+	u_msghdr.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 
 	ret = oob_ioctl(sockfd, EVL_SOCKIOC_SENDMSG, &u_msghdr);
 	if (ret)

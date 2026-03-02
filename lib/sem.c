@@ -29,6 +29,7 @@ int evl_create_sem(struct evl_sem *sem, int clockfd,
 		int initval, int flags,
 		const char *fmt, ...)
 {
+	struct __evl_monitor_sstate *state;
 	struct evl_monitor_attrs attrs;
 	struct evl_element_ids eids;
 	char *name = NULL;
@@ -56,8 +57,9 @@ int evl_create_sem(struct evl_sem *sem, int clockfd,
 	if (efd < 0)
 		return efd;
 
-	sem->u.active.state = __evl_shared_memory + eids.state_offset;
-	atomic_store(&sem->u.active.state->u.event.value, initval);
+	state = __evl_shared_memory + eids.sstate_offset;
+	atomic_store(&state->u.event.value, initval);
+	sem->u.active.sstate_offset = eids.sstate_offset;
 	sem->u.active.fundle = eids.fundle;
 	sem->u.active.efd = efd;
 	sem->magic = __SEM_ACTIVE_MAGIC;
@@ -67,6 +69,7 @@ int evl_create_sem(struct evl_sem *sem, int clockfd,
 
 int evl_open_sem(struct evl_sem *sem, const char *fmt, ...)
 {
+	struct __evl_monitor_sstate *state;
 	struct evl_monitor_binding bind;
 	int ret, efd;
 	va_list ap;
@@ -92,8 +95,9 @@ int evl_open_sem(struct evl_sem *sem, const char *fmt, ...)
 		goto fail;
 	}
 
-	sem->u.active.state = __evl_shared_memory + bind.eids.state_offset;
-	__force_pte_fixup(sem->u.active.state->u.event.value);
+	state = __evl_shared_memory + bind.eids.sstate_offset;
+	__force_pte_fixup(state->u.event.value);
+	sem->u.active.sstate_offset = bind.eids.sstate_offset;
 	sem->u.active.fundle = bind.eids.fundle;
 	sem->u.active.efd = efd;
 	sem->magic = __SEM_ACTIVE_MAGIC;
@@ -120,7 +124,7 @@ int evl_close_sem(struct evl_sem *sem)
 		return -errno;
 
 	sem->u.active.fundle = EVL_NO_HANDLE;
-	sem->u.active.state = NULL;
+	sem->u.active.sstate_offset = ~0;
 	sem->magic = __SEM_DEAD_MAGIC;
 
 	return 0;
@@ -142,7 +146,7 @@ static int check_sanity(struct evl_sem *sem)
 	return sem->magic != __SEM_ACTIVE_MAGIC ? -EINVAL : 0;
 }
 
-static int try_get(struct evl_monitor_state *state)
+static int try_get(struct __evl_monitor_sstate *state)
 {
 	__s32 val;
 
@@ -159,7 +163,7 @@ static int try_get(struct evl_monitor_state *state)
 
 int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 {
-	struct evl_monitor_state *state;
+	struct __evl_monitor_sstate *state;
 	struct evl_monitor_waitreq req;
 	fundle_t current;
 	int mode, ret;
@@ -180,13 +184,13 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 	 */
 	mode = __evl_get_current_mode();
 	if (!(mode & EVL_T_INBAND) || (mode & EVL_T_WEAK)) {
-		state = sem->u.active.state;
+		state = __evl_shared_memory + sem->u.active.sstate_offset;
 		ret = try_get(state);
 		if (ret != -EAGAIN)
 			return ret;
 	}
 
-	req.gatefd = -1;
+	req.gatefun = EVL_NO_HANDLE;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	req.value = 0;		/* dummy */
 
@@ -204,23 +208,26 @@ int evl_get_sem(struct evl_sem *sem)
 
 int evl_tryget_sem(struct evl_sem *sem)
 {
+	struct __evl_monitor_sstate *state;
 	int ret;
 
 	ret = check_sanity(sem);
 	if (ret)
 		return ret;
 
-	return try_get(sem->u.active.state);
+	state = __evl_shared_memory + sem->u.active.sstate_offset;
+
+	return try_get(state);
 }
 
-static inline bool is_polled(struct evl_monitor_state *state)
+static inline bool is_polled(struct __evl_monitor_sstate *state)
 {
 	return !!atomic_load(&state->u.event.pollrefs);
 }
 
 int evl_put_sem(struct evl_sem *sem)
 {
-	struct evl_monitor_state *state;
+	struct __evl_monitor_sstate *state;
 	__s32 sigval = 1, val;
 	int ret;
 
@@ -228,7 +235,7 @@ int evl_put_sem(struct evl_sem *sem)
 	if (ret)
 		return ret;
 
-	state = sem->u.active.state;
+	state = __evl_shared_memory + sem->u.active.sstate_offset;
 	val = atomic_load_explicit(&state->u.event.value, __ATOMIC_ACQUIRE);
 	if (val < 0 || is_polled(state)) {
 	slow_path:
@@ -276,10 +283,13 @@ int evl_flush_sem(struct evl_sem *sem)
 
 int evl_peek_sem(struct evl_sem *sem, int *r_val)
 {
+	struct __evl_monitor_sstate *state;
+
 	if (sem->magic != __SEM_ACTIVE_MAGIC)
 		return -EINVAL;
 
-	*r_val = atomic_load(&sem->u.active.state->u.event.value);
+	state = __evl_shared_memory + sem->u.active.sstate_offset;
+	*r_val = atomic_load(&state->u.event.value);
 
 	return 0;
 }

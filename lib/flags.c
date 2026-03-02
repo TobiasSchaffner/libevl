@@ -30,6 +30,7 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 		int initval, int flags,
 		const char *fmt, ...)
 {
+	struct __evl_monitor_sstate *state;
 	struct evl_monitor_attrs attrs;
 	struct evl_element_ids eids;
 	char *name = NULL;
@@ -57,8 +58,9 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 	if (efd < 0)
 		return efd;
 
-	flg->u.active.state = __evl_shared_memory + eids.state_offset;
-	atomic_store(&flg->u.active.state->u.event.value, initval);
+	state = __evl_shared_memory + eids.sstate_offset;
+	atomic_store(&state->u.event.value, initval);
+	flg->u.active.sstate_offset = eids.sstate_offset;
 	flg->u.active.fundle = eids.fundle;
 	flg->u.active.efd = efd;
 	flg->magic = __FLAGS_ACTIVE_MAGIC;
@@ -68,6 +70,7 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 
 int evl_open_flags(struct evl_flags *flg, const char *fmt, ...)
 {
+	struct __evl_monitor_sstate *state;
 	struct evl_monitor_binding bind;
 	int ret, efd;
 	va_list ap;
@@ -90,8 +93,9 @@ int evl_open_flags(struct evl_flags *flg, const char *fmt, ...)
 		goto fail;
 	}
 
-	flg->u.active.state = __evl_shared_memory + bind.eids.state_offset;
-	__force_pte_fixup(flg->u.active.state->u.event.value);
+	state = __evl_shared_memory + bind.eids.sstate_offset;
+	__force_pte_fixup(state->u.event.value);
+	flg->u.active.sstate_offset = bind.eids.sstate_offset;
 	flg->u.active.fundle = bind.eids.fundle;
 	flg->u.active.efd = efd;
 	flg->magic = __FLAGS_ACTIVE_MAGIC;
@@ -118,7 +122,7 @@ int evl_close_flags(struct evl_flags *flg)
 		return -errno;
 
 	flg->u.active.fundle = EVL_NO_HANDLE;
-	flg->u.active.state = NULL;
+	flg->u.active.sstate_offset = ~0;
 	flg->magic = __FLAGS_DEAD_MAGIC;
 
 	return 0;
@@ -157,7 +161,7 @@ static int do_timedwait_flags(struct evl_flags *flg,
 	if (ret)
 		return ret;
 
-	req.gatefd = -1;
+	req.gatefun = EVL_NO_HANDLE;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	req.value = bits;
 
@@ -298,10 +302,13 @@ int evl_broadcast_flags(struct evl_flags *flg, int bits)
 
 int evl_peek_flags(struct evl_flags *flg, int *r_bits)
 {
+	struct __evl_monitor_sstate *state;
+
 	if (flg->magic != __FLAGS_ACTIVE_MAGIC)
 		return -EINVAL;
 
-	*r_bits = atomic_load(&flg->u.active.state->u.event.value);
+	state = __evl_shared_memory + flg->u.active.sstate_offset;
+	*r_bits = atomic_load(&state->u.event.value);
 
 	return 0;
 }

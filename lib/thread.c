@@ -30,14 +30,14 @@ __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
 int __evl_current_efd = -1;
 
 __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-struct evl_user_window *__evl_current_window;
+struct __evl_thread_sstate *__evl_current_sstate;
 
 static pthread_once_t atfork_once = PTHREAD_ONCE_INIT;
 
 static void clear_tls(void)
 {
 	__evl_current = EVL_NO_HANDLE;
-	__evl_current_window = NULL;
+	__evl_current_sstate = NULL;
 	__evl_current_efd = -1;
 }
 
@@ -92,7 +92,7 @@ int evl_attach_thread(int flags, const char *fmt, ...)
 		return efd;
 
 	__evl_current = eids.fundle;
-	__evl_current_window = __evl_shared_memory + eids.state_offset;
+	__evl_current_sstate = __evl_shared_memory + eids.sstate_offset;
 	__evl_current_efd = efd;
 
 	/*

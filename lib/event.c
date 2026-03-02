@@ -31,6 +31,7 @@ static int init_event_vargs(struct evl_event *evt,
 			int clockfd, int flags,
 			const char *fmt, va_list ap)
 {
+	struct __evl_monitor_sstate *state;
 	struct evl_monitor_attrs attrs;
 	struct evl_element_ids eids;
 	char *name = NULL;
@@ -55,8 +56,9 @@ static int init_event_vargs(struct evl_event *evt,
 	if (efd < 0)
 		return efd;
 
-	evt->u.active.state = __evl_shared_memory + eids.state_offset;
-	__force_pte_fixup(evt->u.active.state->flags);
+	state = __evl_shared_memory + eids.sstate_offset;
+	__force_pte_fixup(state->flags);
+	evt->u.active.sstate_offset = eids.sstate_offset;
 	evt->u.active.fundle = eids.fundle;
 	evt->u.active.efd = efd;
 	evt->magic = __EVENT_ACTIVE_MAGIC;
@@ -81,6 +83,7 @@ static int init_event_static(struct evl_event *evt,
 static int open_event_vargs(struct evl_event *evt,
 			const char *fmt, va_list ap)
 {
+	struct __evl_monitor_sstate *state;
 	struct evl_monitor_binding bind;
 	int ret, efd;
 
@@ -100,8 +103,9 @@ static int open_event_vargs(struct evl_event *evt,
 		goto fail;
 	}
 
-	evt->u.active.state = __evl_shared_memory + bind.eids.state_offset;
-	__force_pte_fixup(evt->u.active.state->flags);
+	state = __evl_shared_memory + bind.eids.sstate_offset;
+	__force_pte_fixup(state->flags);
+	evt->u.active.sstate_offset = bind.eids.sstate_offset;
 	evt->u.active.fundle = bind.eids.fundle;
 	evt->u.active.efd = efd;
 	evt->magic = __EVENT_ACTIVE_MAGIC;
@@ -154,7 +158,7 @@ int evl_close_event(struct evl_event *evt)
 	close(efd);
 
 	evt->u.active.fundle = EVL_NO_HANDLE;
-	evt->u.active.state = NULL;
+	evt->u.active.sstate_offset = ~0;
 	evt->magic = __EVENT_DEAD_MAGIC;
 
 	return 0;
@@ -176,9 +180,9 @@ static int check_event_sanity(struct evl_event *evt)
 	return 0;
 }
 
-static struct evl_monitor_state *get_lock_state(struct evl_event *evt)
+static struct __evl_monitor_sstate *get_lock_state(struct evl_event *evt)
 {
-	struct evl_monitor_state *est = evt->u.active.state;
+	struct __evl_monitor_sstate *est = __evl_shared_memory + evt->u.active.sstate_offset;
 
 	if (est->u.event.gate_offset == EVL_MONITOR_NOGATE)
 		return NULL;	/* Nobody waits on @evt */
@@ -217,9 +221,9 @@ int evl_timedwait_event(struct evl_event *evt,
 	if (ret)
 		return ret;
 
-	req.gatefd = mutex->u.active.efd;
+	req.gatefun = mutex->u.active.fundle;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
-	unwait.ureq.gatefd = req.gatefd;
+	unwait.ureq.gatefun = req.gatefun;
 	unwait.efd = evt->u.active.efd;
 
 	req.value = 0;		/* Only to please valgrind. */
@@ -260,7 +264,7 @@ int evl_wait_event(struct evl_event *evt, struct evl_mutex *mutex)
 
 int evl_signal_event(struct evl_event *evt)
 {
-	struct evl_monitor_state *est, *gst;
+	struct __evl_monitor_sstate *est, *gst;
 	int ret;
 
 	ret = check_event_sanity(evt);
@@ -269,9 +273,9 @@ int evl_signal_event(struct evl_event *evt)
 
 	gst = get_lock_state(evt);
 	if (gst) {
-		gst->flags |= EVL_MONITOR_SIGNALED;
-		est = evt->u.active.state;
-		est->flags |= EVL_MONITOR_SIGNALED;
+		gst->flags.signaled = true;
+		est = __evl_shared_memory + evt->u.active.sstate_offset;
+		est->flags.signaled = true;
 	}
 
 	return 0;
@@ -279,8 +283,8 @@ int evl_signal_event(struct evl_event *evt)
 
 int evl_signal_thread(struct evl_event *evt, int thrfd)
 {
-	struct evl_monitor_state *gst;
-	__u32 efd;
+	struct __evl_monitor_sstate *gst;
+	fundle_t fundle;
 	int ret;
 
 	ret = check_event_sanity(evt);
@@ -289,9 +293,9 @@ int evl_signal_thread(struct evl_event *evt, int thrfd)
 
 	gst = get_lock_state(evt);
 	if (gst) {
-		gst->flags |= EVL_MONITOR_SIGNALED;
-		efd = evt->u.active.efd;
-		return oob_ioctl(thrfd, EVL_THRIOC_SIGNAL, &efd) ? -errno : 0;
+		gst->flags.signaled = true;
+		fundle = evt->u.active.fundle;
+		return oob_ioctl(thrfd, EVL_THRIOC_SIGNAL, &fundle) ? -errno : 0;
 	}
 
 	/* No thread waits on @evt, so @thrfd neither => nop. */
@@ -301,7 +305,7 @@ int evl_signal_thread(struct evl_event *evt, int thrfd)
 
 int evl_broadcast_event(struct evl_event *evt)
 {
-	struct evl_monitor_state *est, *gst;
+	struct __evl_monitor_sstate *est, *gst;
 	int ret;
 
 	ret = check_event_sanity(evt);
@@ -310,9 +314,10 @@ int evl_broadcast_event(struct evl_event *evt)
 
 	gst = get_lock_state(evt);
 	if (gst) {
-		gst->flags |= EVL_MONITOR_SIGNALED;
-		est = evt->u.active.state;
-		est->flags |= EVL_MONITOR_SIGNALED|EVL_MONITOR_BROADCAST;
+		gst->flags.signaled = true;
+		est = __evl_shared_memory + evt->u.active.sstate_offset;
+		est->flags.signaled = true;
+		est->flags.broadcast = true;
 	}
 
 	return 0;

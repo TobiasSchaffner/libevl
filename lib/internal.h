@@ -26,12 +26,12 @@ extern __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
 int __evl_current_efd;
 
 extern __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-struct evl_user_window *__evl_current_window;
+struct __evl_thread_sstate *__evl_current_sstate;
 
 static inline int __evl_get_current_mode(void)
 {
-	return __evl_current_window ?
-		__evl_current_window->state : EVL_T_INBAND;
+	return __evl_current_sstate ?
+		__evl_current_sstate->state : EVL_T_INBAND;
 }
 
 static inline fundle_t __evl_get_current(void)
@@ -39,10 +39,10 @@ static inline fundle_t __evl_get_current(void)
 	return __evl_current;
 }
 
-static inline struct evl_user_window *
-__evl_get_current_window(void)
+static inline struct __evl_thread_sstate *
+__evl_get_current_sstate(void)
 {
-	return __evl_current ? __evl_current_window : NULL;
+	return __evl_current ? __evl_current_sstate : NULL;
 }
 
 static inline bool __evl_is_inband(void)
