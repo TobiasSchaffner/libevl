@@ -114,12 +114,12 @@ static struct thread_info {
 	int cprio;
 	char *policy;
 	char *policy_details;
-	unsigned long nr_inbandsw;
-	unsigned long nr_ctxsw;
-	unsigned long nr_syscalls;
-	unsigned long nr_rwakeups;
-	unsigned long long cpu_time;
-	unsigned long long timeout;
+	__u64 nr_inbandsw;
+	__u64 nr_ctxsw;
+	__u64 nr_syscalls;
+	__u64 nr_rwakeups;
+	__u64 cpu_time;
+	__u64 timeout;
 	char *wchan;
 	int percent_cpu;
 	unsigned int state;
@@ -141,7 +141,7 @@ static bool collect_sched_info(struct thread_info *ti, char *buf)
 
 static bool collect_statistics(struct thread_info *ti, char *buf)
 {
-	int ret = sscanf(buf, "%lu %lu %lu %lu %Lu %d",
+	int ret = sscanf(buf, "%Lu %Lu %Lu %Lu %Lu %d",
 			&ti->nr_inbandsw,
 			&ti->nr_ctxsw,
 			&ti->nr_syscalls,
@@ -567,7 +567,7 @@ static struct display_handler state_handler = {
 
 static void display_inbandsw(struct thread_info *ti)
 {
-	printf("%-8ld", ti->nr_inbandsw);
+	printf("%-8Lu", ti->nr_inbandsw);
 }
 
 static struct display_handler inbandsw_handler = {
@@ -578,7 +578,7 @@ static struct display_handler inbandsw_handler = {
 
 static void display_ctxsw(struct thread_info *ti)
 {
-	printf("%-10ld", ti->nr_ctxsw);
+	printf("%-10Lu", ti->nr_ctxsw);
 }
 
 static struct display_handler ctxsw_handler = {
@@ -589,7 +589,7 @@ static struct display_handler ctxsw_handler = {
 
 static void display_syscall(struct thread_info *ti)
 {
-	printf("%-10ld", ti->nr_syscalls);
+	printf("%-10Lu", ti->nr_syscalls);
 }
 
 static struct display_handler syscall_handler = {
@@ -600,7 +600,7 @@ static struct display_handler syscall_handler = {
 
 static void display_rwakeups(struct thread_info *ti)
 {
-	printf("%-10ld", ti->nr_rwakeups);
+	printf("%-10Lu", ti->nr_rwakeups);
 }
 
 static struct display_handler rwakeups_handler = {
