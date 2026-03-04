@@ -161,7 +161,7 @@ static void query_oob_port(const char *netif, const char *which)
 		printf("    tx packets: %llu\n", devs.tx_packets);
 		printf("      tx bytes: %llu\n", devs.tx_bytes);
 		printf("      skb size: %u\n", devs.skb_size);
-		printf("      skb free: %u / %u\n", devs.skb_free, devs.skb_total);
+		printf("  free buffers: %u / %u\n", devs.skb_free, devs.skb_total);
 		printf("   csum errors: %u\n", devs.csum_errors);
 		printf("      rx nomem: %u\n", devs.rx_nomem);
 		printf("      tx nomem: %u\n", devs.tx_nomem);
