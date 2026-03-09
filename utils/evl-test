@@ -7,7 +7,40 @@ if test \! -d $EVL_TESTDIR; then
 fi
 
 usage() {
-   echo >&2 "usage: $(basename $1) [-l][-L][-k][-r][-h][--stress-cmd cmd][--stress-out file][--latmus-args args][--latmus-out file] [test-list]"
+   cat >&2 <<EOF
+usage: $(basename $1) [options] [test-list]
+
+Run EVL test suite or specific tests from the test directory.
+
+Options:
+  -l                    list available tests
+  -L                    list available tests with full paths
+  -k                    keep going after test failures
+  -r                    repeat tests continuously until interrupted
+  --stress-cmd <cmd>    run stress command during the test session (quote if multiple arguments)
+  --stress-out <file>   redirect stress command output (default: /dev/null)
+  --latmus-args <args>  extra arguments passed to the final latmus run (e.g. "-A 150", "-T 60")
+  --latmus-out <file>   redirect latmus output (default: /dev/null)
+  -h                    display this help message
+  --                    pass remaining arguments to test programs
+
+Arguments:
+  test-list             one or more test names to run (default: all tests)
+
+Latency check:
+  After the functional tests, latmus runs quietly for 10 seconds under the active stress load
+  (if any) before teardown. The runtime defaults to 10s unless overridden with -T via
+  --latmus-args.
+
+Environment Variables:
+  EVL_TESTDIR           directory containing test binaries
+
+Examples:
+  $(basename $1)                                   # run all tests
+  $(basename $1) --stress-cmd "stress-ng --cpu 4"  # run tests under stress-ng CPU stress
+  $(basename $1) --latmus-args "-T 60 -A 200"      # run latmus for 60s and fail above 200us
+  $(basename $1) -- --verbose                      # pass --verbose to all tests
+EOF
 }
 
 help=false
