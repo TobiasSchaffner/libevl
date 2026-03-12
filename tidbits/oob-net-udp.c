@@ -31,7 +31,7 @@ static void usage(void)
 {
 	fprintf(stderr, "oob-net-udp -a <IP-address> [-p <port>]"
 		"[-m <text>][-n <msgcount>][-i <iterations>]"
-		"[-d][-s][-R|-S]\n");
+		"[-d][-s][-R|-S][-b]\n");
 }
 
 static void sender(int s, const char *text, int mcount,
@@ -116,13 +116,13 @@ int main(int argc, char *argv[])
 {
 	int tfd, s, c, mcount = 1, iter = 0, port = 42042, on = 1;
 	const char *text = "Mellow sword!";
-	bool send = false, bcast = true;
+	bool send = false, bcast = false;
 	struct sched_param param;
 	struct sockaddr_in addr;
 	const char *ip = NULL;
 	ssize_t ret;
 
-	while ((c = getopt(argc, argv, "a:m:n:i:p:dsRS")) != EOF) {
+	while ((c = getopt(argc, argv, "a:m:n:i:p:dsRSb")) != EOF) {
 		switch (c) {
 		case 'a':
 			ip = optarg;
@@ -145,6 +145,9 @@ int main(int argc, char *argv[])
 		case 'p':
 			port = atoi(optarg);
 			break;
+		case 'b':
+			bcast = true; /* Force mode, e.g. for directed broadcast */
+			break;
 		case 'R':
 			send = false;
 			break;
@@ -165,10 +168,14 @@ int main(int argc, char *argv[])
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
-	if (!strcmp(ip, "broadcast"))
+	if (!strcmp(ip, "broadcast")) {
 		addr.sin_addr.s_addr = INADDR_BROADCAST;
-	else if (!inet_pton(AF_INET, ip, &addr.sin_addr))
+		bcast = true;
+	} else if (!inet_pton(AF_INET, ip, &addr.sin_addr)) {
 		error(1, EINVAL, "invalid IP address");
+	} else if (addr.sin_addr.s_addr == INADDR_BROADCAST) {
+		bcast = true;
+	}
 
 	param.sched_priority = 1;
 	ret = pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
@@ -187,25 +194,22 @@ int main(int argc, char *argv[])
 		error(1, errno, "cannot create out-of-band UDP socket");
 
 	if (send) {
-		bcast = false;
-		if (addr.sin_addr.s_addr == INADDR_BROADCAST) {
+		if (bcast) {
 			ret = setsockopt(s, SOL_SOCKET, SO_BROADCAST, &on, sizeof(on));
 			if (ret)
 				error(1, errno, "cannot enable broadcast for UDP socket");
-			bcast = true;
-		} else {
-			/*
-			 * Guarantee a mere oob path from the first
-			 * packet onward by pre-caching the route and
-			 * link-layer address via an explicit
-			 * neighbour solicitation before we start
-			 * sending data.
-			 */
-			ret = evl_net_solicit(s, (const struct sockaddr *)&addr,
-					EVL_NEIGH_PERMANENT);
-			if (ret)
-				error(1, -ret, "evl_net_solicit()");
 		}
+
+		/*
+		 * Guarantee a mere oob path from the first packet
+		 * onward by pre-caching the route and link-layer
+		 * address via an explicit neighbour solicitation
+		 * before we start sending data.
+		 */
+		ret = evl_net_solicit(s, (const struct sockaddr *)&addr,
+				EVL_NEIGH_PERMANENT);
+		if (ret)
+			error(1, -ret, "evl_net_solicit()");
 
 		if (verbosity)
 			printf("== sender mode (=> %s:%d)\n", bcast ? "[broadcast]" : ip, port);
