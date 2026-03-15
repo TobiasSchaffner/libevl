@@ -49,6 +49,7 @@ install_headers(
 
 libevl_intrinsics_headers = [
     'evl/intrinsics/event.h',
+    'evl/intrinsics/flags.h',
     'evl/intrinsics/gate.h',
     'evl/intrinsics/monitor.h',
     'evl/intrinsics/sem.h',

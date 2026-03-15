@@ -23,6 +23,7 @@ libevl_sources = [
     'version.c',
     'xbuf.c',
     'intrinsics/event.c',
+    'intrinsics/flags.c',
     'intrinsics/gate.c',
     'intrinsics/monitor.c',
     'intrinsics/sem.c',

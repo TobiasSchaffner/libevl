@@ -4,23 +4,17 @@
  * Copyright (C) 2019 Philippe Gerum  <rpm@xenomai.org>
  */
 
-#include <stdbool.h>
-#include <sys/types.h>
 #include <sys/ioctl.h>
+#include <stdbool.h>
 #include <time.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
-#include <evl/compiler.h>
 #include <evl/atomic.h>
 #include <evl/sys.h>
 #include <evl/flags.h>
-#include <evl/thread.h>
 #include <evl/syscall.h>
-#include <linux/types.h>
 #include "internal.h"
 
 #define __FLAGS_ACTIVE_MAGIC	0xb42bb42b
@@ -30,7 +24,6 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 		int initval, int flags,
 		const char *fmt, ...)
 {
-	struct __evl_monitor_sstate *state;
 	struct evl_monitor_attrs attrs;
 	struct evl_element_ids eids;
 	char *name = NULL;
@@ -58,10 +51,7 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 	if (efd < 0)
 		return efd;
 
-	state = __evl_shared_memory + eids.sstate_offset;
-	atomic_store(&state->u.event.value, initval);
-	flg->u.active.sstate_offset = eids.sstate_offset;
-	flg->u.active.fundle = eids.fundle;
+	evli_init_flags(&flg->fgroup, eids.sstate_offset);
 	flg->u.active.efd = efd;
 	flg->magic = __FLAGS_ACTIVE_MAGIC;
 
@@ -70,7 +60,6 @@ int evl_create_flags(struct evl_flags *flg, int clockfd,
 
 int evl_open_flags(struct evl_flags *flg, const char *fmt, ...)
 {
-	struct __evl_monitor_sstate *state;
 	struct evl_monitor_binding bind;
 	int ret, efd;
 	va_list ap;
@@ -93,10 +82,7 @@ int evl_open_flags(struct evl_flags *flg, const char *fmt, ...)
 		goto fail;
 	}
 
-	state = __evl_shared_memory + bind.eids.sstate_offset;
-	__force_pte_fixup(state->u.event.value);
-	flg->u.active.sstate_offset = bind.eids.sstate_offset;
-	flg->u.active.fundle = bind.eids.fundle;
+	evli_init_flags(&flg->fgroup, bind.eids.sstate_offset);
 	flg->u.active.efd = efd;
 	flg->magic = __FLAGS_ACTIVE_MAGIC;
 
@@ -121,9 +107,8 @@ int evl_close_flags(struct evl_flags *flg)
 	if (ret)
 		return -errno;
 
-	flg->u.active.fundle = EVL_NO_HANDLE;
-	flg->u.active.sstate_offset = ~0;
 	flg->magic = __FLAGS_DEAD_MAGIC;
+	flg->u.active.efd = -1;
 
 	return 0;
 }
@@ -237,12 +222,9 @@ static int do_trywait_flags(struct evl_flags *flg,
 	 * In-band threads may trywait flags directly, no need to
 	 * trigger a stage switch since we won't sleep.
 	 */
-	if (__evl_get_current() && !__evl_is_inband())
-		ret = oob_ioctl(flg->u.active.efd, cmd, &req);
-	else
-		ret = ioctl(flg->u.active.efd, cmd, &req);
+	ret = __evl_conforming_io(flg->u.active.efd, ioctl, cmd, &req);
 	if (ret)
-		return -errno;
+		return ret;
 
 	if (r_bits)
 		*r_bits = req.value;
@@ -282,12 +264,7 @@ static int do_post_flags(struct evl_flags *flg, int bits, bool bcast)
 	cmd = bcast ? EVL_MONIOC_BROADCAST : EVL_MONIOC_SIGNAL;
 
 	/* See trywait(). */
-	if (__evl_get_current() && !__evl_is_inband())
-		ret = oob_ioctl(flg->u.active.efd, cmd, &mask);
-	else
-		ret = ioctl(flg->u.active.efd, cmd, &mask);
-
-	return ret ? -errno : 0;
+	return __evl_conforming_io(flg->u.active.efd, ioctl, cmd, &mask);
 }
 
 int evl_post_flags(struct evl_flags *flg, int bits)
@@ -302,13 +279,13 @@ int evl_broadcast_flags(struct evl_flags *flg, int bits)
 
 int evl_peek_flags(struct evl_flags *flg, int *r_bits)
 {
-	struct __evl_monitor_sstate *state;
+	int ret;
 
-	if (flg->magic != __FLAGS_ACTIVE_MAGIC)
-		return -EINVAL;
+	ret = check_sanity(flg);
+	if (ret)
+		return ret;
 
-	state = __evl_shared_memory + flg->u.active.sstate_offset;
-	*r_bits = atomic_load(&state->u.event.value);
+	*r_bits = evli_monitor_value(&flg->fgroup);
 
 	return 0;
 }

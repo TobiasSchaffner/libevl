@@ -8,6 +8,7 @@
 #define _EVL_RWLOCK_H
 
 #include <stdint.h>
+#include <evl/atomic.h>
 #include <evl/flags.h>
 
 struct evl_rwlock {

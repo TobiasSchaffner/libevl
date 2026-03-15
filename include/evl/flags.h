@@ -9,14 +9,12 @@
 
 #include <time.h>
 #include <evl/compiler.h>
-#include <evl/atomic.h>
-#include <evl/types-abi.h>
-#include <evl/monitor-abi.h>
 #include <evl/clock-abi.h>
-#include <evl/factory-abi.h>
+#include <evl/intrinsics/flags.h>
 
 struct evl_flags {
 	unsigned int magic;
+	struct evli_monitor fgroup;
 	union {
 		struct {
 			const char *name;
@@ -25,8 +23,6 @@ struct evl_flags {
 			int flags;
 		} uninit;
 		struct {
-			fundle_t fundle;
-			__u32 sstate_offset;
 			int efd;
 		} active;
 	} u;
