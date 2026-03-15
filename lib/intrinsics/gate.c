@@ -62,7 +62,7 @@ int evli_trylock_gate(struct evli_monitor *gate)
 	fundle_t current;
 	int mode, ret;
 
-	current = __evl_get_current();
+	current = evli_current();
 	if (current == EVL_NO_HANDLE)
 		return -EPERM;
 
@@ -72,10 +72,10 @@ int evli_trylock_gate(struct evli_monitor *gate)
 	 * Threads running in-band and/or enabling WOLI debug must go
 	 * through the slow syscall path.
 	 */
-	mode = __evl_get_current_mode();
+	mode = evli_current_mode();
 	if (!(mode & (EVL_T_INBAND|EVL_T_WEAK|EVL_T_WOLI))) {
 		if (gst->protocol == EVL_GATE_PP) {
-			sstate = __evl_get_current_sstate();
+			sstate = evli_current_sstate();
 			/*
 			 * Can't nest lazy ceiling requests, have to
 			 * take the slow path when this happens.
@@ -143,7 +143,7 @@ int evli_tryunlock_gate(struct evli_monitor *gate)
 
 	gst = __evl_shared_memory + gate->sstate_offset;
 
-	current = __evl_get_current();
+	current = evli_current();
 	if (!is_gate_owner(&gst->u.gate.owner, current))
 		return -EPERM;
 
@@ -156,13 +156,13 @@ int evli_tryunlock_gate(struct evli_monitor *gate)
 	if (gst->flags.signaled)
 		return -ENODATA;
 
-	mode = __evl_get_current_mode();
+	mode = evli_current_mode();
 	if (mode & (EVL_T_WEAK|EVL_T_WOLI))
 		return -ENODATA;
 
 	if (atomic_tryunlock_gate(&gst->u.gate.owner, current)) {
 		if (gst->protocol == EVL_GATE_PP) {
-			sstate = __evl_get_current_sstate();
+			sstate = evli_current_sstate();
 			sstate->pp_pending = EVL_NO_HANDLE;
 		}
 		return 0;

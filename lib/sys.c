@@ -251,5 +251,5 @@ fail:
 
 int evl_get_current_mode(void)
 {
-	return __evl_get_current_mode();
+	return evli_current_mode();
 }

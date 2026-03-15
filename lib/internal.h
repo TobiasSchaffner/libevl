@@ -9,51 +9,19 @@
 
 #include <time.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include <evl/thread-abi.h>
+#include <evl/intrinsics/thread.h>
 
-#define __evl_ptr64(__ptr)	((__u64)(uintptr_t)(__ptr))
+#define __evl_ptr64(__ptr)		((__u64)(uintptr_t)(__ptr))
 #define __evl_ktimespec_ptr64(__ts)	__evl_ptr64(__ts)
 #define __evl_kitimerspec_ptr64(__its)	__evl_ptr64(__its)
-
-/* Enable dlopen() on libevl.so. */
-#define EVL_TLS_MODEL	"global-dynamic"
-
-extern __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-fundle_t __evl_current;
 
 extern __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
 int __evl_current_efd;
 
-extern __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-struct __evl_thread_sstate *__evl_current_sstate;
-
-static inline int __evl_get_current_mode(void)
-{
-	return __evl_current_sstate ?
-		__evl_current_sstate->state : EVL_T_INBAND;
-}
-
-static inline fundle_t __evl_get_current(void)
-{
-	return __evl_current;
-}
-
-static inline struct __evl_thread_sstate *
-__evl_get_current_sstate(void)
-{
-	return __evl_current ? __evl_current_sstate : NULL;
-}
-
-static inline bool __evl_is_inband(void)
-{
-	return !!(__evl_get_current_mode() & EVL_T_INBAND);
-}
-
 #define __evl_conforming_io(__efd, __call, __args...)		\
 	({							\
 		int __ret;					\
-		if (__evl_is_inband())				\
+		if (evli_is_inband())				\
 			__ret = __call(__efd, ##__args);	\
 		else						\
 			__ret = oob_##__call(__efd, ##__args);	\

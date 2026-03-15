@@ -145,7 +145,7 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 	 * weakly scheduled ones for which in-band is the nominal
 	 * mode.
 	 */
-	mode = __evl_get_current_mode();
+	mode = evli_current_mode();
 	if ((mode & (EVL_T_INBAND|EVL_T_WEAK)) == EVL_T_INBAND)
 		goto slow_path;
 
@@ -154,7 +154,7 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 		return ret;
 
 slow_path:
-	if (__evl_get_current() == EVL_NO_HANDLE)
+	if (evli_current() == EVL_NO_HANDLE)
 		return -EPERM;
 
 	req.gatefun = EVL_NO_HANDLE;
@@ -197,7 +197,7 @@ int evl_put_sem(struct evl_sem *sem)
 	if (ret != -ENODATA)
 		return ret;
 
-	if (__evl_get_current() && !__evl_is_inband())
+	if (evli_current() && !evli_is_inband())
 		ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_SIGNAL, &sigval);
 	else
 		/* In-band threads may post pended sema4s. */
@@ -215,7 +215,7 @@ int evl_flush_sem(struct evl_sem *sem)
 	if (ret)
 		return ret;
 
-	if (__evl_get_current() && !__evl_is_inband())
+	if (evli_current() && !evli_is_inband())
 		ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_BROADCAST, &sigval);
 	else
 		ret = ioctl(sem->u.active.efd, EVL_MONIOC_BROADCAST, &sigval);

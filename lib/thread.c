@@ -7,38 +7,26 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <memory.h>
 #include <pthread.h>
-#include <sched.h>
-#include <evl/evl.h>
 #include <evl/sys.h>
 #include <evl/thread.h>
-#include <evl/compiler.h>
-#include <evl/factory-abi.h>
-#include <evl/control-abi.h>
 #include <evl/observable-abi.h>
+#include <evl/intrinsics/thread.h>
 #include "internal.h"
 
-__thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-fundle_t __evl_current = EVL_NO_HANDLE;
+static __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
+struct evli_thread __evl_current_desc;
 
 __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
 int __evl_current_efd = -1;
-
-__thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
-struct __evl_thread_sstate *__evl_current_sstate;
 
 static pthread_once_t atfork_once = PTHREAD_ONCE_INIT;
 
 static void clear_tls(void)
 {
-	__evl_current = EVL_NO_HANDLE;
-	__evl_current_sstate = NULL;
 	__evl_current_efd = -1;
+	evli_clear_tls();
 }
 
 static void atfork_clear_tls(void)
@@ -56,9 +44,7 @@ int evl_attach_thread(int flags, const char *fmt, ...)
 {
 	int efd, ret, policy, priority;
 	struct evl_sched_attrs attrs;
-	struct evl_element_ids eids;
 	struct sched_param param;
-	char *name = NULL;
 	va_list ap;
 
 	/*
@@ -70,29 +56,12 @@ int evl_attach_thread(int flags, const char *fmt, ...)
 	if (ret)
 		return ret;
 
-	/*
-	 * Cannot bind twice. Although the core would catch it, we can
-	 * detect this issue early.
-	 */
-	if (__evl_current != EVL_NO_HANDLE)
-		return -EBUSY;
-
-	if (fmt) {
-		va_start(ap, fmt);
-		ret = vasprintf(&name, fmt, ap);
-		va_end(ap);
-		if (ret < 0)
-			return -ENOMEM;
-	}
-
-	efd = evl_create_element(EVL_THREAD_DEV, name, NULL, flags, &eids);
-	if (name)
-		free(name);
+	va_start(ap, fmt);
+	efd = evli_attach_thread(&__evl_current_desc, flags, fmt, ap);
+	va_end(ap);
 	if (efd < 0)
 		return efd;
 
-	__evl_current = eids.fundle;
-	__evl_current_sstate = __evl_shared_memory + eids.sstate_offset;
 	__evl_current_efd = efd;
 
 	/*
@@ -177,7 +146,7 @@ int evl_get_self(void)
 
 bool evl_is_inband(void)
 {
-	return __evl_is_inband();
+	return evli_is_inband();
 }
 
 int evl_switch_oob(void)

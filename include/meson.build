@@ -53,6 +53,7 @@ libevl_intrinsics_headers = [
     'evl/intrinsics/gate.h',
     'evl/intrinsics/monitor.h',
     'evl/intrinsics/sem.h',
+    'evl/intrinsics/thread.h',
 ]
 
 install_headers(

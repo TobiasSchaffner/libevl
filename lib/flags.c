@@ -138,7 +138,7 @@ static int do_timedwait_flags(struct evl_flags *flg,
 	fundle_t current;
 	int ret;
 
-	current = __evl_get_current();
+	current = evli_current();
 	if (current == EVL_NO_HANDLE)
 		return -EPERM;
 

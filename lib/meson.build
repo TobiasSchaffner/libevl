@@ -27,6 +27,7 @@ libevl_sources = [
     'intrinsics/gate.c',
     'intrinsics/monitor.c',
     'intrinsics/sem.c',
+    'intrinsics/thread.c',
 ]
 
 stamp_generator = find_program('generate-git-stamp.sh',
