@@ -9,18 +9,15 @@
 
 #include <time.h>
 #include <evl/compiler.h>
-#include <evl/atomic.h>
-#include <evl/types-abi.h>
-#include <evl/monitor-abi.h>
 #include <evl/clock-abi.h>
 #include <evl/factory-abi.h>
+#include <evl/intrinsics/sem.h>
 
 struct evl_sem {
 	unsigned int magic;
+	struct evli_monitor sem;
 	union {
 		struct {
-			fundle_t fundle;
-			__u32 sstate_offset;
 			int efd;
 		} active;
 		struct {
