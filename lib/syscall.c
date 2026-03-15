@@ -44,16 +44,48 @@ ssize_t oob_write(int efd, const void *buf, size_t count)
 	return ret;
 }
 
-int oob_ioctl(int efd, unsigned long request, ...)
+int oob_ioctl(int efd, unsigned long cmd, ...)
 {
 	int ret, old_type;
 	va_list ap;
 	long arg;
 
-	va_start(ap, request);
+	va_start(ap, cmd);
 	arg = va_arg(ap, long);
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &old_type);
-	ret = __evl_syscall(sys_evl_ioctl, efd, request, arg);
+	ret = __evl_syscall(sys_evl_ioctl, efd, cmd, arg);
+	pthread_setcanceltype(old_type, NULL);
+	va_end(ap);
+
+	return ret;
+}
+
+int oob_functl(int efd, unsigned long cmd, ...)
+{
+	int ret, old_type;
+	va_list ap;
+	long arg;
+
+	va_start(ap, cmd);
+	arg = va_arg(ap, long);
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &old_type);
+	ret = __evl_syscall(sys_evl_functl, efd, cmd, arg);
+	pthread_setcanceltype(old_type, NULL);
+	va_end(ap);
+
+	return ret;
+}
+
+int functl(int efd, unsigned long cmd, ...)
+{
+	int ret, old_type;
+	va_list ap;
+	long arg;
+
+	va_start(ap, cmd);
+	arg = va_arg(ap, long);
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &old_type);
+	ret = __evl_syscall(sys_evl_ifunctl, efd, cmd, arg);
 	pthread_setcanceltype(old_type, NULL);
 	va_end(ap);
 

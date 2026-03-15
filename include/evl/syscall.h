@@ -20,6 +20,10 @@ ssize_t oob_write(int efd, const void *buf, size_t count);
 
 int oob_ioctl(int efd, unsigned long request, ...);
 
+int oob_functl(int efd, unsigned long request, ...);
+
+int functl(int efd, unsigned long request, ...);
+
 #ifdef __cplusplus
 }
 #endif
