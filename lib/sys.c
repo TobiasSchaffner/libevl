@@ -126,14 +126,23 @@ int evl_create_element(const char *type, const char *name,
 		efd = clone.efd;
 	}
 
-	ret = flip_fd_flags(efd, F_SETFD, O_CLOEXEC);
-	if (ret)
-		goto out_element;
-
-	if (nonblock) {
-		ret = flip_fd_flags(efd, F_SETFL, O_NONBLOCK);
+	/*
+	 * Owned elements have no representation in the /dev/evl
+	 * hierarchy, and no file descriptor. On success creating
+	 * them, return zero immediately.
+	 */
+	if (clone_flags & __EVL_CLONE_OWNED) {
+		efd = 0;
+	} else {
+		ret = flip_fd_flags(efd, F_SETFD, O_CLOEXEC);
 		if (ret)
 			goto out_element;
+
+		if (nonblock) {
+			ret = flip_fd_flags(efd, F_SETFL, O_NONBLOCK);
+			if (ret)
+				goto out_element;
+		}
 	}
 
 	if (eids)
