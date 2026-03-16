@@ -7,7 +7,6 @@
 #ifndef _EVL_EVL_H
 #define _EVL_EVL_H
 
-#include <signal.h>
 #include <evl/clock.h>
 #include <evl/mutex.h>
 #include <evl/event.h>
@@ -20,6 +19,7 @@
 #include <evl/poll.h>
 #include <evl/proxy.h>
 #include <evl/rwlock.h>
+#include <evl/sys.h>
 #include <evl/control-abi.h>
 
 #define __EVL__  33	/* API version */
@@ -36,19 +36,5 @@ struct evl_version {
 	int abi_level;	/* EVL_ABI_PREREQ */
 	const char *version_string;
 };
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int evl_init(void);
-
-void evl_sigdebug_handler(int sig, siginfo_t *si, void *ctxt);
-
-struct evl_version evl_get_version(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _EVL_EVL_H */

@@ -8,11 +8,15 @@
 #define _EVL_SYS_H
 
 #include <stdarg.h>
-#include <evl/factory-abi.h>
+#include <signal.h>
+
+struct evl_element_ids;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+int evl_init(void);
 
 int evl_create_element(const char *type,
 		       const char *name,
@@ -31,6 +35,10 @@ int evl_open_raw(const char *type);
 int evl_get_current_mode(void);
 
 unsigned int evl_detect_fpu(void);
+
+void evl_sigdebug_handler(int sig, siginfo_t *si, void *ctxt);
+
+struct evl_version evl_get_version(void);
 
 #ifdef __cplusplus
 }
