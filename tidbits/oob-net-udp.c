@@ -30,7 +30,7 @@ static int verbosity = 1;
 static void usage(void)
 {
 	fprintf(stderr, "oob-net-udp -a <IP-address> [-p <port>]"
-		"[-m <text>][-n <msgcount>][-i <iterations>]"
+		"[-m <text>][-n <msgcount>][-I <iterations>][-i <interface>]"
 		"[-d][-s][-R|-S][-b]\n");
 }
 
@@ -115,14 +115,14 @@ static void receiver(int s, struct sockaddr_in *addr, int iter)
 int main(int argc, char *argv[])
 {
 	int tfd, s, c, mcount = 1, iter = 0, port = 42042, on = 1;
-	const char *text = "Mellow sword!";
+	const char *text = "Mellow sword!", *iface = NULL;
 	bool send = false, bcast = false;
 	struct sched_param param;
 	struct sockaddr_in addr;
 	const char *ip = NULL;
 	ssize_t ret;
 
-	while ((c = getopt(argc, argv, "a:m:n:i:p:dsRSb")) != EOF) {
+	while ((c = getopt(argc, argv, "a:m:n:i:I:p:dsRSb")) != EOF) {
 		switch (c) {
 		case 'a':
 			ip = optarg;
@@ -140,6 +140,9 @@ int main(int argc, char *argv[])
 			mcount = atoi(optarg);
 			break;
 		case 'i':
+			iface = optarg;
+			break;
+		case 'I':
 			iter = atoi(optarg);
 			break;
 		case 'p':
@@ -192,6 +195,13 @@ int main(int argc, char *argv[])
 	s = socket(AF_INET, SOCK_DGRAM | SOCK_OOB, 0);
 	if (s < 0)
 		error(1, errno, "cannot create out-of-band UDP socket");
+
+	if (iface) {
+		if (setsockopt(s, SOL_SOCKET, SO_BINDTODEVICE, iface, strlen(iface)))
+			error(1, errno, "setsockopt(SO_BINDTODEVICE)");
+		if (verbosity)
+			printf("== bound to %s\n", iface);
+	}
 
 	if (send) {
 		if (bcast) {
