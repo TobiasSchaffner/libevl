@@ -270,11 +270,6 @@ int main(int argc, char *argv[])
 			(uint8_t)hwaddr.sa_data[4],
 			(uint8_t)hwaddr.sa_data[5]);
 
-	/*
-	 * NOTE: Unlike the in-band network stack, EVL accepts binding
-	 * a packet socket to a VLAN device. The in-band stack will be
-	 * told by EVL to bind its side to the real device instead.
-	 */
 	memset(&addr, 0, sizeof(addr));
 	addr.sll_ifindex = ifindex;
 	addr.sll_family = AF_PACKET;
@@ -325,16 +320,6 @@ int main(int argc, char *argv[])
 
 		iov.iov_base = o_frame;
 		iov.iov_len = count;
-		msghdr.msg_name = &addr;
-		/*
-		 * The core returned the index of the real network
-		 * interface receiving the ICMP request in
-		 * addr.sll_ifindex. We need to switch this value back
-		 * to the index of the VLAN device which acts as an
-		 * oob data port.
-		 */
-		addr.sll_ifindex = ifindex;
-		msghdr.msg_namelen = sizeof(addr);
 		msghdr.msg_flags = 0;
 		count = oob_sendmsg(s, &msghdr, NULL, 0);
 		if (count < 0)
