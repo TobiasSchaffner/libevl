@@ -63,11 +63,11 @@ static void dump_packet(const char *title,
 	while (len-- > 0) {
 		evl_printf("%.2x ", *buf++);
 		if ((++n % 16) == 0)
-			putchar('\n');
+			evl_printf("\n");
 	}
 
 	if (n % 16)
-		putchar('\n');
+		evl_printf("\n");
 }
 
 static void print_ip_header(const struct ip *iphdr)
@@ -87,33 +87,37 @@ static void print_icmp_request(const void *etherbuf, size_t len)
 
 	dump_packet("ICMP request", etherbuf, len);
 	iphdr = etherbuf + ETH_HLEN;
+	print_ip_header(iphdr);
 	icmphdr = (const struct icmphdr *)(iphdr + 1);
 	icmpdata = icmphdr + 1;
 	(void)icmpdata;
 	evl_printf("icmp.icmp_type=%d\n", icmphdr->type);
 	evl_printf("icmp.icmp_id=%d\n", ntohs(icmphdr->un.echo.id));
 	evl_printf("icmp.icmp_seq=%d\n", ntohs(icmphdr->un.echo.sequence));
-
-	print_ip_header(iphdr);
 }
 
 static struct ip *check_icmp_request(void *etherbuf, size_t len)
 {
 	struct ip *iphdr;
 
-	if (verbosity > 1)
-		print_icmp_request(etherbuf, len);
-
-	if (len < ETH_HLEN + sizeof(struct ip) + sizeof(struct icmphdr))
+	if (len < ETH_HLEN + sizeof(struct ip) + sizeof(struct icmphdr)) {
+		if (verbosity > 1)
+			dump_packet("truncated packet", etherbuf, len);
 		return NULL;
+	}
 
 	iphdr = etherbuf + ETH_HLEN;
 
-	if (iphdr->ip_hl != 5 || iphdr->ip_v != 4)
+	if (iphdr->ip_hl != 5 || iphdr->ip_v != 4 || iphdr->ip_p != IPPROTO_ICMP) {
+		if (verbosity > 1) {
+			dump_packet("mangled packet", etherbuf, len);
+			print_ip_header(iphdr);
+		}
 		return NULL;
+	}
 
-	if (iphdr->ip_p != IPPROTO_ICMP)
-		return NULL;
+	if (verbosity > 1)
+		print_icmp_request(etherbuf, len);
 
 	return iphdr;
 }
@@ -183,8 +187,8 @@ static size_t build_icmp_reply(uint8_t *o_frame, uint8_t *i_frame,
 	pktlen = ETH_HLEN + sizeof(iphdr) + sizeof(icmphdr) + datalen;
 
 	if (verbosity > 1) {
-		dump_packet("ICMP reply", o_frame, pktlen);
 		print_ip_header(d_iphdr);
+		dump_packet("ICMP reply", o_frame, pktlen);
 	}
 
 	return pktlen;
@@ -314,8 +318,9 @@ int main(int argc, char *argv[])
 					(struct ether_addr *)addr.sll_addr,
 					(struct ether_addr *)hwaddr.sa_data);
 		if (count < 0) {
-			evl_printf("  *** not an ICMP request - dropped\n");
-			continue;
+			if (count == -EPROTO)
+				evl_printf("  *** not an ICMP request - dropped\n");
+			goto next;
 		}
 
 		iov.iov_base = o_frame;
@@ -327,6 +332,7 @@ int main(int argc, char *argv[])
 
 		if (verbosity > 1)
 			evl_printf("  .. ICMP reply sent: %zd\n", count);
+	next:
 		n++;
 	}
 
