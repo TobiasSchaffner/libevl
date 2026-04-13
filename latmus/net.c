@@ -558,18 +558,21 @@ void run_net_test(bool no_check, size_t histogram_cells)
 		error(1, EINVAL, "cannot resolve '%s' as an IPv4 address",
 			peer_host);
 
-	/* evl_net_open_port() only works for oob ports. */
-	devfd = evl_net_open_port(local_netif);
+	devfd = evl_net_open_dev(local_netif);
 	if (devfd < 0)
-		error(1, -devfd, "%s is not an out-of-band port",
+		error(1, -devfd, "cannot open interface '%s'",
 			local_netif);
 
-	ret = evl_net_query_port(devfd, &devs);
+	ret = evl_net_query_dev(devfd, &devs);
 	if (ret)
-		error(1, -ret, "cannot query information about %s",
+		error(1, -ret, "cannot query interface '%s'",
 			local_netif);
 
 	close(devfd);
+
+	if (!devs.oob_port)
+		error(1, EINVAL, "no out-of-band port on interface '%s'",
+			local_netif);
 
 	local_in.sin_family = AF_INET;
 	local_in.sin_port = htons(LATMUS_NET_PORT);

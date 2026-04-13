@@ -114,45 +114,47 @@ static void usage(const char *arg0)
 
 static void enable_oob_port(const char *netif, size_t poolsz, size_t bufsz)
 {
-	int fd;
+	int devfd, ret;
 
-	fd = evl_net_enable_port(netif, poolsz, bufsz);
-	if (fd < 0)
-		error(1, -fd, "cannot enable out-of-band port on %s", netif);
+	devfd = evl_net_open_dev(netif);
+	if (devfd < 0)
+		error(1, -devfd, "cannot open interface '%s'", netif);
 
-	close(fd);	/* We don't need the fildes of the oob port. */
+	ret = evl_net_enable_port(devfd, poolsz, bufsz);
+	close(devfd);
+	if (ret)
+		error(1, -ret, "cannot enable out-of-band port on '%s'", netif);
 }
 
 static void disable_oob_port(const char *netif)
 {
-	int ret, fd;
+	int devfd, ret;
 
-	fd = evl_net_open_port(netif);
-	if (fd < 0)
-		error(1, -fd, "cannot open out-of-band port %s", netif);
+	devfd = evl_net_open_dev(netif);
+	if (devfd < 0)
+		error(1, -devfd, "cannot open interface '%s'", netif);
 
-	ret = evl_net_disable_port(fd);
+	ret = evl_net_disable_port(devfd);
+	close(devfd);
 	if (ret < 0)
-		error(1, -ret, "cannot disable out-of-band port on %s", netif);
-
-	close(fd);
+		error(1, -ret, "cannot disable out-of-band port on '%s'", netif);
 }
 
-static void query_oob_port(const char *netif, const char *which)
+static void query_netdev(const char *netif, const char *which)
 {
 	struct evl_net_devstat devs = { 0 };
 	const char *space = "";
-	int ret, fd;
+	int ret, devfd;
 
-	fd = evl_net_open_port(netif);
-	if (fd < 0)
-		error(1, -fd, "cannot open out-of-band port %s", netif);
+	devfd = evl_net_open_dev(netif);
+	if (devfd < 0)
+		error(1, -devfd, "cannot open interface '%s'", netif);
 
-	ret = evl_net_query_port(fd, &devs);
+	ret = evl_net_query_dev(devfd, &devs);
 	if (ret < 0)
-		error(1, -ret, "cannot query out-of-band port on %s", netif);
+		error(1, -ret, "cannot query interface '%s'", netif);
 
-	close(fd);
+	close(devfd);
 
 	if (!which || !*which) {
 		printf("oob capability: %s\n", devs.oob_capable ? "yes" : "no");
@@ -210,17 +212,17 @@ static void query_oob_port(const char *netif, const char *which)
 
 static void set_bpf_filter(const char *netif, const char *modpath)
 {
-	int ret, fd;
+	int ret, devfd;
 
-	fd = evl_net_open_port(netif);
-	if (fd < 0)
-		error(1, -fd, "cannot open out-of-band port %s", netif);
+	devfd = evl_net_open_dev(netif);
+	if (devfd < 0)
+		error(1, -devfd, "cannot open interface '%s'", netif);
 
-	ret = evl_net_set_filter(fd, modpath);
+	ret = evl_net_set_filter(devfd, modpath);
 	if (ret < 0)
-		error(1, -ret, "cannot set BPF filter on %s", netif);
+		error(1, -ret, "cannot set BPF filter on '%s'", netif);
 
-	close(fd);
+	close(devfd);
 }
 
 static int find_host_ip(const char *host, struct in_addr *addr)
@@ -477,7 +479,7 @@ int main(int argc, char *argv[])
 		solicit_neighbour(ipaddr, netif, permanent, allow_routing);
 
 	if (query)
-		query_oob_port(netif, query_type);
+		query_netdev(netif, query_type);
 
 	return 0;
 }
