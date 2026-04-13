@@ -56,7 +56,7 @@ static int init_event_vargs(struct evl_event *evt,
 		return efd;
 
 	evt->u.active.state = __evl_shared_memory + eids.state_offset;
-	__force_read_access(evt->u.active.state->flags);
+	__force_pte_fixup(evt->u.active.state->flags);
 	evt->u.active.fundle = eids.fundle;
 	evt->u.active.efd = efd;
 	evt->magic = __EVENT_ACTIVE_MAGIC;
@@ -101,7 +101,7 @@ static int open_event_vargs(struct evl_event *evt,
 	}
 
 	evt->u.active.state = __evl_shared_memory + bind.eids.state_offset;
-	__force_read_access(evt->u.active.state->flags);
+	__force_pte_fixup(evt->u.active.state->flags);
 	evt->u.active.fundle = bind.eids.fundle;
 	evt->u.active.efd = efd;
 	evt->magic = __EVENT_ACTIVE_MAGIC;

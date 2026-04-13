@@ -91,7 +91,7 @@ int evl_open_flags(struct evl_flags *flg, const char *fmt, ...)
 	}
 
 	flg->u.active.state = __evl_shared_memory + bind.eids.state_offset;
-	__force_read_access(flg->u.active.state->u.event.value);
+	__force_pte_fixup(flg->u.active.state->u.event.value);
 	flg->u.active.fundle = bind.eids.fundle;
 	flg->u.active.efd = efd;
 	flg->magic = __FLAGS_ACTIVE_MAGIC;

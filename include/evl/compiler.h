@@ -93,10 +93,18 @@
 		__builtin_ctzl((long)__x)		\
 		: __builtin_ctzll(__x))
 
-#define __force_read_access(__var)					\
+/*
+ * Force the PTE which maps &__var to be fixed up by triggering a
+ * minor fault if need be.
+ *
+ * CAUTION: this code is NOT thread-safe, usable as part of init
+ * chores exclusively, i.e. when no concurrent accesses to __var can
+ * happen (yet).
+ */
+#define __force_pte_fixup(__var)					\
 	do {								\
 		__typeof(__var) __v = *((volatile typeof(__var) *)&(__var)); \
-		(void)__v;						\
+		*((volatile typeof(__var) *)&(__var)) = __v;		\
 	} while (0)
 
 #define compiler_barrier()  __asm__ __volatile__("": : :"memory")

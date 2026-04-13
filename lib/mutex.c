@@ -111,7 +111,7 @@ static int init_mutex_vargs(struct evl_mutex *mutex,
 	gst->u.gate.recursive = !!(flags & EVL_MUTEX_RECURSIVE);
 	mutex->u.active.state = gst;
 	init_fast_lock(&gst->u.gate.owner);
-	__force_read_access(gst->flags); /* Force sync the PTE. */
+	__force_pte_fixup(gst->flags); /* Force sync the PTE. */
 	mutex->u.active.fundle = eids.fundle;
 	mutex->u.active.monitor = EVL_MONITOR_GATE;
 	mutex->u.active.protocol = protocol;
@@ -160,8 +160,8 @@ static int open_mutex_vargs(struct evl_mutex *mutex,
 
 	gst = __evl_shared_memory + bind.eids.state_offset;
 	mutex->u.active.state = gst;
-	__force_read_access(gst->flags);
-	__force_read_access(gst->u.gate.owner);
+	__force_pte_fixup(gst->flags);
+	__force_pte_fixup(gst->u.gate.owner);
 	mutex->u.active.fundle = bind.eids.fundle;
 	mutex->u.active.monitor = bind.type;
 	mutex->u.active.protocol = bind.protocol;

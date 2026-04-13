@@ -93,7 +93,7 @@ int evl_open_sem(struct evl_sem *sem, const char *fmt, ...)
 	}
 
 	sem->u.active.state = __evl_shared_memory + bind.eids.state_offset;
-	__force_read_access(sem->u.active.state->u.event.value);
+	__force_pte_fixup(sem->u.active.state->u.event.value);
 	sem->u.active.fundle = bind.eids.fundle;
 	sem->u.active.efd = efd;
 	sem->magic = __SEM_ACTIVE_MAGIC;
