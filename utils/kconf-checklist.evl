@@ -6,24 +6,32 @@
 #
 # 
 # check_list  : assertion
-# 	      | check_list assertion
+#             | check_list assertion
 # 
 # assertion   : expr conditions
-# 	      | "!" expr conditions
+#             | "!" expr conditions
 # 
-# expr	    : symbol /* matches =y and =m */
-# 	    | symbol "=" tristate
+# expr      : symbol /* matches =y and =m */
+#           | symbol "=" tristate
 # 
 # tristate  : "y"
-# 	    | "m"
-# 	    | "n"
+#           | "m"
+#           | "n"
 # 
 # conditions  : dependency
-# 	      | dependency arch
+#             | dependency arch
 # 
-# dependency  : "if" symbol	/* true if set as y/m */
+# dependency  : "if" cond
+#
+# cond  : condexpr
+#       | "!" condexpr
+#
+# condexpr  : symbol       /* i.e. symbol=y */
+#           | symbol "=" value
+#
+# value     : <any Kconfig symbol value>
 # 
-# arch	    : "on" cputype
+# arch      : "on" cputype
 # 
 # cputype   : $(uname -m)
 # 

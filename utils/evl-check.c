@@ -79,8 +79,6 @@ static char *hash_config(FILE *kconfp)
 			continue;
 		if (strncmp(sym, "CONFIG_", 7))
 			continue;
-		if (strcmp(val, "y") && strcmp(val, "m"))
-			continue;
 		entry.key = sym;
 		entry.data = NULL;
 		e = hsearch(entry, FIND);
@@ -140,9 +138,9 @@ static const char *get_arch_alias(const char *arch)
 
 static int apply_checklist(FILE *checkfp, const char *cpuarch)
 {
-	char buf[BUFSIZ], *token, *next, *sym, *val;
-	int lineno = 0, failed = 0;
-	bool not, notcond;
+	char buf[BUFSIZ], *token, *next, *sym, *val, *condsym, *condexpr;
+	int lineno = 0, failed = 0, ret;
+	bool not, notcond, cmp, check;
 	const char *arch;
 	ENTRY entry, *e;
 
@@ -176,6 +174,7 @@ static int apply_checklist(FILE *checkfp, const char *cpuarch)
 			token = next_token(&next);
 		}
 
+		condsym = condexpr = NULL;
 		if (!strcmp(token, "if")) {
 			free(token);
 			token = next_token(&next);
@@ -188,12 +187,33 @@ static int apply_checklist(FILE *checkfp, const char *cpuarch)
 				error(1, EINVAL,
 					"invalid condition symbol '%s' at line %d",
 					token, lineno);
+			condsym = token;
 			entry.key = token;
 			entry.data = NULL;
 			e = hsearch(entry, FIND);
+			token = next_token(&next);
+			if (*token == '=') {
+				free(token);
+				if (!e) {
+					if (!notcond)
+						goto skip;
+				} else {
+					token = next_token(&next);
+					cmp = !strcmp(token, e->data);
+					if (!((cmp && !notcond) || (!cmp && notcond))) {
+						free(token);
+						goto skip;
+					}
+					ret = asprintf(&condexpr, " and %s=%s", e->key, token);
+				}
+			} else {
+				if (!((e && !notcond) || (!e && notcond)))
+					goto skip;
+				ret = asprintf(&condexpr, " and %s=%s",
+					condsym, e ? (const char *)e->data : "n");
+			}
+			(void)ret;
 			free(token);
-			if (!((e && !notcond) || (!e && notcond)))
-				continue;
 			token = next_token(&next);
 		}
 
@@ -203,7 +223,7 @@ static int apply_checklist(FILE *checkfp, const char *cpuarch)
 			arch = get_arch_alias(token);
 			if (strncmp(cpuarch, arch, strlen(arch))) {
 				free(token);
-				continue;
+				goto skip;
 			}
 		}
 
@@ -213,20 +233,32 @@ static int apply_checklist(FILE *checkfp, const char *cpuarch)
 		entry.data = NULL;
 		e = hsearch(entry, FIND);
 
-		if (val && !strcmp(val, "n"))
-			not = !not;
+		if (val) {
+			cmp = !strcmp(val, e ? e->data : "n");
+			check = (cmp && !not) || (!cmp && not);
+		} else {
+			check = (e && !not) || (!e & not);
+		}
 
-		if (e && (not || (val && strcmp(val, e->data)))) {
-			if (!quiet)
-				printf("%s=%s\n", sym, (const char *)e->data);
-			failed++;
-		} else if (!e && !not) {
-			if (!quiet)
-				printf("%s=n\n", sym);
+		if (!check) {
+			if (!quiet) {
+				if (e)
+					printf("%s=%s%s\n", sym,
+						(const char *)e->data, condexpr ?: "");
+				else
+					printf("%s=n%s\n", sym, condexpr ?: "");
+			}
 			failed++;
 		}
 
+		if (condexpr)
+			free(condexpr);
+	skip:
+		if (condsym)
+			free(condsym);
+
 		free(sym);
+
 		if (val)
 			free(val);
 	}
