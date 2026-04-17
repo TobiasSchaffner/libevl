@@ -129,7 +129,11 @@ int main(int argc, char *const argv[])
 	setenv("EVL_CMDDIR", cmddir, 1);
 	setenv("EVL_TESTDIR", testdir, 1);
 	setenv("EVL_SYSDIR", "/sys/devices/virtual", 1);
-	setenv("EVL_TRACEDIR", "/sys/kernel/debug/tracing", 1);
+	/* Prefer tracefs over debugfs (obsolete) mountpoint. */
+	if (!access("/sys/kernel/tracing", F_OK))
+		setenv("EVL_TRACEDIR", "/sys/kernel/tracing", 1);
+	else
+		setenv("EVL_TRACEDIR", "/sys/kernel/debug/tracing", 1);
 	setenv("PATH", searchpath, 1);
 
 	cmdargv = malloc(sizeof(char *) * (argc - optind + 1));
