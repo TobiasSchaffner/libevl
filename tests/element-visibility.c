@@ -25,69 +25,70 @@ int main(int argc, char *argv[])
 	char *name, *path;
 	int efd, ret;
 
-	name = get_unique_name_and_path(EVL_THREAD_DEV, 0, &path); /* public */
-	__Tcall_assert(efd, evl_attach_self("%s", name));
-	__Texpr_assert(element_is_public(path));
-	__Tcall_assert(efd, evl_detach_self());
+	name = get_unique_name_and_path(EVL_THREAD_DEV, 0, &path);
 
 	__Tcall_assert(efd, evl_attach_self("%s", name + 1)); /* private */
 	__Texpr_assert(!element_is_public(path));
 	__Tcall_assert(efd, evl_detach_self());
 
+	__Tcall_assert(efd, evl_attach_self("%s", name)); /* public */
+	__Texpr_assert(element_is_public(path));
+	__Tcall_assert(efd, evl_detach_self());
+
 	__Tcall_assert(efd, evl_attach_self(NULL)); /* unnamed (private) */
 	__Tcall_assert(efd, evl_detach_self());
 
-	name = get_unique_name_and_path(EVL_MONITOR_DEV, 0, &path); /* public */
-	__Tcall_assert(efd, evl_new_sem(&sem, "%s", name));
-	__Texpr_assert(element_is_public(path));
-	__Tcall_assert(efd, evl_close_sem(&sem));
+	name = get_unique_name_and_path(EVL_MONITOR_DEV, 0, &path);
 
-	name = get_unique_name_and_path(EVL_MONITOR_DEV, 0, &path); /* private */
-	__Tcall_assert(efd, evl_new_sem(&sem, "%s", name + 1));
+	__Tcall_assert(efd, evl_new_sem(&sem, "%s", name + 1)); /* private */
 	__Texpr_assert(!element_is_public(path));
 	__Tcall_assert(efd, evl_close_sem(&sem));
 
 	__Tcall_assert(efd, evl_new_sem(&sem, NULL)); /* unnamed (private) */
 	__Tcall_assert(efd, evl_close_sem(&sem));
 
-	name = get_unique_name_and_path(EVL_XBUF_DEV, 0, &path); /* public */
-	__Tcall_assert(efd, evl_new_xbuf(1024, "%s", name));
+	__Tcall_assert(efd, evl_new_sem(&sem, "%s", name)); /* public */
 	__Texpr_assert(element_is_public(path));
+	__Tcall_assert(efd, evl_close_sem(&sem));
+
+	name = get_unique_name_and_path(EVL_XBUF_DEV, 0, &path);
+
+	__Tcall_assert(efd, evl_new_xbuf(1024, "%s", name + 1)); /* private */
+	__Texpr_assert(!element_is_public(path));
 	__Tcall_assert(ret, close(efd));
 
-	name = get_unique_name_and_path(EVL_XBUF_DEV, 0, &path); /* private */
-	__Tcall_assert(efd, evl_new_xbuf(1024, "%s", name + 1));
-	__Texpr_assert(!element_is_public(path));
+	__Tcall_assert(efd, evl_new_xbuf(1024, "%s", name)); /* public */
+	__Texpr_assert(element_is_public(path));
 	__Tcall_assert(ret, close(efd));
 
 	__Tcall_assert(efd, evl_new_xbuf(1024, NULL)); /* unnamed (private) */
 	__Tcall_assert(efd, close(efd));
 
-	name = get_unique_name_and_path(EVL_PROXY_DEV, 0, &path); /* public */
-	__Tcall_assert(efd, evl_new_proxy(1, 0, "%s", name));
+	name = get_unique_name_and_path(EVL_PROXY_DEV, 0, &path);
+
+	__Tcall_assert(efd, evl_new_proxy(1, 0, "%s", name)); /* public */
 	__Texpr_assert(element_is_public(path));
 	__Tcall_assert(ret, close(efd));
 
-	name = get_unique_name_and_path(EVL_PROXY_DEV, 0, &path); /* private */
-	__Tcall_assert(efd, evl_new_proxy(1, 0, "%s", name + 1));
+	__Tcall_assert(efd, evl_new_proxy(1, 0, "%s", name + 1)); /* private */
 	__Texpr_assert(!element_is_public(path));
 	__Tcall_assert(ret, close(efd));
 
 	__Tcall_assert(efd, evl_new_proxy(1, 0, NULL)); /* unnamed (private) */
 	__Tcall_assert(efd, close(efd));
 
-	name = get_unique_name_and_path(EVL_OBSERVABLE_DEV, 0, &path); /* public */
-	__Tcall_assert(efd, evl_new_observable("%s", name));
-	__Texpr_assert(element_is_public(path));
-	__Tcall_assert(ret, close(efd));
+	name = get_unique_name_and_path(EVL_OBSERVABLE_DEV, 0, &path);
 
-	name = get_unique_name_and_path(EVL_PROXY_DEV, 0, &path); /* private */
-	__Tcall_assert(efd, evl_new_observable("%s", name + 1));
+	__Tcall_assert(efd, evl_new_observable("%s", name + 1)); /* private */
 	__Texpr_assert(!element_is_public(path));
 	__Tcall_assert(ret, close(efd));
 
 	__Tcall_assert(efd, evl_new_observable(NULL)); /* unnamed (private) */
 	__Tcall_assert(efd, close(efd));
+
+	__Tcall_assert(efd, evl_new_observable("%s", name)); /* public */
+	__Texpr_assert(element_is_public(path));
+	__Tcall_assert(ret, close(efd));
 
 	return 0;
 }
