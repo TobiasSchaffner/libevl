@@ -263,8 +263,14 @@ int main(int argc, char *argv[])
 	pthread_join(threadB, NULL);
 	pthread_join(threadA, NULL);
 
-	if (getenv("EVL_IN_VM"))
-		return 0;
+	/*
+	 * Don't consider results in a virtualized environment, they
+	 * are likely to be wrong due to coarse timing accuracy.
+	 */
+	if (running_on_vm()) {
+		emit_info("unchecked (vm)");
+		return EXIT_NO_STATUS;
+	}
 
 	if (overflow) {
 		do_trace("schedule overflowed");
