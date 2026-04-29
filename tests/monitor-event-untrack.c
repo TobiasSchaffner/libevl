@@ -22,8 +22,9 @@
 #define MEDIUM_PRIO	2
 #define HIGH_PRIO	3
 
-#define WAIT_TIMEOUT	100000000	/* 100ms */
-#define BUSY_TIMEOUT	(WAIT_TIMEOUT + 1000000)
+#define SLACK_TIME(t)	(running_on_vm() ? (t) : 0)
+#define WAIT_TIMEOUT	(100000000 + SLACK_TIME(400000000))	/* 100ms/500ms */
+#define BUSY_TIMEOUT	(WAIT_TIMEOUT + 1000000 + SLACK_TIME(9000000))
 
 struct test_context {
 	struct evl_mutex lock;
