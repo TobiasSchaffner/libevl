@@ -128,9 +128,16 @@ static void *tp_thread(void *arg)
 	 */
 	__Texpr_assert(nf.event.val == part * 2);
 
-	/* Check that a single notification was sent. */
-	__Fcall_assert(ret, evl_read_observable(tfd, &nf, 1));
-	__Texpr_assert(ret == -EAGAIN);
+	/*
+	 * Perform the following check on real hardware only, it is
+	 * likely to be wrong in a virtualized environment for timing
+	 * accuracy reason.
+	 */
+	if (!running_on_vm()) {
+		/* Check that a single notification was sent. */
+		__Fcall_assert(ret, evl_read_observable(tfd, &nf, 1));
+		__Texpr_assert(ret == -EAGAIN);
+	}
 
 	return NULL;
 }
