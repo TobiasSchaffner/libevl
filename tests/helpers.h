@@ -141,4 +141,6 @@ long timespec_sub_ns(const struct timespec *__restrict r,
 int pick_test_cpu(int hint_cpu,
 		bool inband_test, bool *isolated);
 
+bool running_on_vm(void);
+
 #endif /* !_EVL_TESTS_HELPERS_H */

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <error.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sched.h>
@@ -18,6 +19,10 @@
 #define ONLINE_CPU_LIST	  "/sys/devices/system/cpu/online"
 #define ISOLATED_CPU_LIST "/sys/devices/system/cpu/isolated"
 #define OOB_CPU_LIST	  "/sys/devices/virtual/evl/control/cpus"
+
+static pthread_once_t once_on_vm = PTHREAD_ONCE_INIT;
+
+static bool on_vm_flag;
 
 char *get_unique_name_and_path(const char *type,
 			int serial, char **ppath)
@@ -203,4 +208,26 @@ finish:
 		*isolated = CPU_ISSET(hint_cpu, &isolated_cpus);
 
 	return hint_cpu;
+}
+
+static void check_if_vm(void)
+{
+	const char *p = getenv("EVL_ON_VM");
+	int yes;
+
+	if (p) {
+		yes = !strcmp(p, "1");
+		yes |= !strcmp(p, "y");
+		yes |= !strcmp(p, "yes");
+		yes |= !strcmp(p, "Y");
+		yes |= !strcmp(p, "YES");
+		on_vm_flag = yes;
+	}
+}
+
+bool running_on_vm(void)
+{
+	pthread_once(&once_on_vm, check_if_vm);
+
+	return on_vm_flag;
 }
