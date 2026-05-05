@@ -197,13 +197,8 @@ int evl_put_sem(struct evl_sem *sem)
 	if (ret != -ENODATA)
 		return ret;
 
-	if (evli_current() && !evli_is_inband())
-		ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_SIGNAL, &sigval);
-	else
-		/* In-band threads may post pended sema4s. */
-		ret = ioctl(sem->u.active.efd, EVL_MONIOC_SIGNAL, &sigval);
-
-	return ret ? -errno : 0;
+	return __evl_conforming_io(sem->u.active.efd, ioctl,
+				EVL_MONIOC_SIGNAL, &sigval);
 }
 
 int evl_flush_sem(struct evl_sem *sem)
@@ -215,12 +210,8 @@ int evl_flush_sem(struct evl_sem *sem)
 	if (ret)
 		return ret;
 
-	if (evli_current() && !evli_is_inband())
-		ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_BROADCAST, &sigval);
-	else
-		ret = ioctl(sem->u.active.efd, EVL_MONIOC_BROADCAST, &sigval);
-
-	return ret ? -errno : 0;
+	return __evl_conforming_io(sem->u.active.efd, ioctl,
+				EVL_MONIOC_BROADCAST, &sigval);
 }
 
 int evl_peek_sem(struct evl_sem *sem, int *r_val)
