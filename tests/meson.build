@@ -19,6 +19,7 @@ test_programs = [
     'heap-torture',
     'hectic',
     'mapfd',
+    'monitor-count-inband',
     'monitor-deadlock',
     'monitor-deboost-stress',
     'monitor-event',
