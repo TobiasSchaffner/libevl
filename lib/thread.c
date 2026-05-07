@@ -115,9 +115,6 @@ int evl_detach_thread(int flags)
 	if (flags)
 		return -EINVAL;
 
-	if (__evl_current == EVL_NO_HANDLE)
-		return -EPERM;
-
 	/*
 	 * Force EVL_T_WOSS off, there is no point in receiving SIGDEBUG
 	 * as a result of calling ioctl() to detach from the core.
@@ -152,9 +149,6 @@ bool evl_is_inband(void)
 int evl_switch_oob(void)
 {
 	int ret;
-
-	if (__evl_current == EVL_NO_HANDLE)
-		return -EPERM;
 
 	if (!evl_is_inband())
 		return 0;

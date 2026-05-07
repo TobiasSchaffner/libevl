@@ -135,12 +135,7 @@ static int do_timedwait_flags(struct evl_flags *flg,
 			int *r_bits)
 {
 	struct evl_monitor_waitreq req;
-	fundle_t current;
 	int ret;
-
-	current = evli_current();
-	if (current == EVL_NO_HANDLE)
-		return -EPERM;
 
 	ret = check_sanity(flg);
 	if (ret)

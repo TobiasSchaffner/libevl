@@ -154,9 +154,6 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 		return ret;
 
 slow_path:
-	if (evli_current() == EVL_NO_HANDLE)
-		return -EPERM;
-
 	req.gatefun = EVL_NO_HANDLE;
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	req.value = 0;		/* dummy */
