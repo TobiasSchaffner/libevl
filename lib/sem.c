@@ -140,10 +140,11 @@ int evl_timedget_sem(struct evl_sem *sem, const struct timespec *timeout)
 		return ret;
 
 	/*
-	 * Threads running in-band must take the slow path in order to
-	 * switch oob prior to decrementing the semaphore, except
-	 * weakly scheduled ones for which in-band is the nominal
-	 * mode.
+	 * Threads running in-band must only take the slow path in
+	 * order to switch oob prior to decrementing the semaphore,
+	 * except weakly scheduled ones for which this is the nominal
+	 * mode. Non-EVL threads spuriously calling this service would
+	 * receive -EPERM.
 	 */
 	mode = evli_current_mode();
 	if ((mode & (EVL_T_INBAND|EVL_T_WEAK)) == EVL_T_INBAND)
@@ -158,9 +159,7 @@ slow_path:
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	req.value = 0;		/* dummy */
 
-	ret = oob_ioctl(sem->u.active.efd, EVL_MONIOC_WAIT, &req);
-
-	return ret ? -errno : 0;
+	return __evl_conforming_call(sem->u.active.efd, ioctl, EVL_MONIOC_WAIT, &req);
 }
 
 int evl_get_sem(struct evl_sem *sem)
