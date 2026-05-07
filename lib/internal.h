@@ -66,6 +66,8 @@ extern int __evl_ctlfd;
 
 extern int __evl_mono_clockfd;
 
+extern int __evl_mono_raw_clockfd;
+
 extern int __evl_real_clockfd;
 
 #endif /* _LIB_EVL_INTERNAL_H */

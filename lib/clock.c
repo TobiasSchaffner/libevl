@@ -16,8 +16,9 @@
 #include <evl/sys.h>
 #include "internal.h"
 
-int __evl_mono_clockfd = -ENXIO,
-	__evl_real_clockfd = -ENXIO;
+int __evl_mono_clockfd = -ENXIO;
+int __evl_mono_raw_clockfd = -ENXIO;
+int __evl_real_clockfd = -ENXIO;
 
 static int gettime_fallback(clockid_t clk_id, struct timespec *tp)
 {
@@ -31,6 +32,7 @@ int evl_read_clock(int clockfd, struct timespec *tp)
 {
 	switch (clockfd) {
 	case -CLOCK_MONOTONIC:
+	case -CLOCK_MONOTONIC_RAW:
 	case -CLOCK_REALTIME:
 		return __evl_clock_gettime(-clockfd, tp) ? -errno : 0;
 	default:
@@ -44,6 +46,7 @@ int evl_set_clock(int clockfd, const struct timespec *tp)
 
 	switch (clockfd) {
 	case EVL_CLOCK_MONOTONIC:
+	case EVL_CLOCK_MONOTONIC_RAW:
 	case EVL_CLOCK_REALTIME:
 		ret = clock_settime(-clockfd, tp);
 		if (ret)
@@ -63,6 +66,7 @@ int evl_get_clock_resolution(int clockfd, struct timespec *tp)
 
 	switch (clockfd) {
 	case EVL_CLOCK_MONOTONIC:
+	case EVL_CLOCK_MONOTONIC_RAW:
 	case EVL_CLOCK_REALTIME:
 		ret = clock_getres(-clockfd, tp);
 		if (ret)
@@ -78,10 +82,18 @@ int evl_get_clock_resolution(int clockfd, struct timespec *tp)
 
 int evl_sleep_until(int clockfd, const struct timespec *timeout)
 {
-	if (clockfd == EVL_CLOCK_MONOTONIC)
+	switch (clockfd) {
+	case EVL_CLOCK_MONOTONIC:
 		clockfd = __evl_mono_clockfd;
-	else if (clockfd == EVL_CLOCK_REALTIME)
+		break;
+	case EVL_CLOCK_MONOTONIC_RAW:
+		clockfd = __evl_mono_raw_clockfd;
+		break;
+	case EVL_CLOCK_REALTIME:
 		clockfd = __evl_real_clockfd;
+		break;
+	default:
+	}
 
 	return oob_ioctl(clockfd, EVL_CLKIOC_SLEEP, timeout) ? -errno : 0;
 }
@@ -127,6 +139,11 @@ int __evl_attach_clocks(void)
 	if (__evl_mono_clockfd < 0)
 		return __evl_mono_clockfd;
 
+	__evl_mono_raw_clockfd = evl_open_element(EVL_CLOCK_DEV,
+					    EVL_CLOCK_MONOTONIC_RAW_DEV);
+	if (__evl_mono_raw_clockfd < 0)
+		return __evl_mono_raw_clockfd;
+
 	__evl_real_clockfd = evl_open_element(EVL_CLOCK_DEV,
 					    EVL_CLOCK_REALTIME_DEV);
 	if (__evl_real_clockfd < 0) {
@@ -142,8 +159,14 @@ int __evl_attach_clocks(void)
 	 * monotonic clock to map such register(s) now, so that we
 	 * won't receive SIGDEBUG due to switching in-band
 	 * inadvertently for this reason later on.
+	 *
+	 * Note: make sure to perform dummy readouts from the plain
+	 * and raw monotonic clock bases since they might depend on
+	 * distinct clock source devices, hence involve separate
+	 * register mappings.
 	 */
 	evl_read_clock(EVL_CLOCK_MONOTONIC, &dummy);
+	evl_read_clock(EVL_CLOCK_MONOTONIC_RAW, &dummy);
 
 	return 0;
 }
