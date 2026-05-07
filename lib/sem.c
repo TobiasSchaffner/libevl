@@ -197,7 +197,7 @@ int evl_put_sem(struct evl_sem *sem)
 	if (ret != -ENODATA)
 		return ret;
 
-	return __evl_conforming_io(sem->u.active.efd, ioctl,
+	return __evl_transparent_call(sem->u.active.efd, ioctl,
 				EVL_MONIOC_SIGNAL, &sigval);
 }
 
@@ -210,7 +210,7 @@ int evl_flush_sem(struct evl_sem *sem)
 	if (ret)
 		return ret;
 
-	return __evl_conforming_io(sem->u.active.efd, ioctl,
+	return __evl_transparent_call(sem->u.active.efd, ioctl,
 				EVL_MONIOC_BROADCAST, &sigval);
 }
 

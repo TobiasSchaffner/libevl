@@ -15,12 +15,14 @@
 
 int evl_set_schedattr(int efd, const struct evl_sched_attrs *attrs)
 {
-	return __evl_conforming_io(efd, ioctl, EVL_THRIOC_SET_SCHEDPARAM, attrs);
+	return __evl_transparent_call(efd, ioctl,
+				EVL_THRIOC_SET_SCHEDPARAM, attrs);
 }
 
 int evl_get_schedattr(int efd, struct evl_sched_attrs *attrs)
 {
-	return __evl_conforming_io(efd, ioctl, EVL_THRIOC_GET_SCHEDPARAM, attrs);
+	return __evl_transparent_call(efd, ioctl,
+				EVL_THRIOC_GET_SCHEDPARAM, attrs);
 }
 
 int evl_control_sched(int policy,
@@ -38,7 +40,8 @@ int evl_control_sched(int policy,
 	ctlreq.param_ptr = __evl_ptr64(param);
 	ctlreq.info_ptr = __evl_ptr64(info);
 
-	return __evl_conforming_io(__evl_ctlfd, ioctl, EVL_CTLIOC_SCHEDCTL, &ctlreq);
+	return __evl_transparent_call(__evl_ctlfd, ioctl,
+				EVL_CTLIOC_SCHEDCTL, &ctlreq);
 }
 
 int evl_get_cpustate(int cpu, int *state_r)
@@ -53,7 +56,8 @@ int evl_get_cpustate(int cpu, int *state_r)
 	cpst.cpu = cpu;
 	cpst.state_ptr = __evl_ptr64(&state);
 
-	ret = __evl_conforming_io(__evl_ctlfd, ioctl, EVL_CTLIOC_GET_CPUSTATE, &cpst);
+	ret = __evl_transparent_call(__evl_ctlfd, ioctl,
+				EVL_CTLIOC_GET_CPUSTATE, &cpst);
 	if (ret)
 		return ret;
 

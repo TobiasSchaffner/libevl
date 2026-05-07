@@ -18,7 +18,12 @@
 extern __thread __attribute__ ((tls_model (EVL_TLS_MODEL)))
 int __evl_current_efd;
 
-#define __evl_conforming_io(__efd, __call, __args...)		\
+/*
+ * A transparent EVL call does not cause any stage switch. Works only
+ * if the syscall is implemented identically for the in-band and
+ * out-of-band stages.
+ */
+#define __evl_transparent_call(__efd, __call, __args...)	\
 	({							\
 		int __ret;					\
 		if (evli_is_inband())				\
@@ -26,6 +31,24 @@ int __evl_current_efd;
 		else						\
 			__ret = oob_##__call(__efd, ##__args);	\
 		__ret ? -errno : 0;				\
+	})
+
+/*
+ * A conforming EVL call uses the most appropriate I/O service for the
+ * caller, based on its scheduling information. As a result, it may
+ * cause a switch to the out-of-band stage. Works only if the syscall
+ * is implemented identically for the in-band and out-of-band stages.
+ */
+#define __evl_conforming_call(__efd, __call, __args...)			\
+	({								\
+		int __ret, __mode = evli_current_mode();		\
+		fundle_t __current = evli_current();			\
+		if (!__current || (__mode & (EVL_T_WEAK|EVL_T_INBAND))	\
+			== (EVL_T_WEAK|EVL_T_INBAND))			\
+			__ret = __call(__efd, ##__args);		\
+		else							\
+			__ret = oob_##__call(__efd, ##__args);		\
+		__ret ? -errno : 0;					\
 	})
 
 int __evl_arch_init(void);

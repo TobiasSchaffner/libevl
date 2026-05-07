@@ -50,7 +50,8 @@ int evl_set_clock(int clockfd, const struct timespec *tp)
 			return -errno;
 		break;
 	default:
-		ret = __evl_conforming_io(clockfd, ioctl, EVL_CLKIOC_SET_TIME, tp);
+		ret = __evl_transparent_call(clockfd, ioctl,
+					EVL_CLKIOC_SET_TIME, tp);
 	}
 
 	return ret;
@@ -68,7 +69,8 @@ int evl_get_clock_resolution(int clockfd, struct timespec *tp)
 			return -errno;
 		break;
 	default:
-		ret = __evl_conforming_io(clockfd, ioctl, EVL_CLKIOC_GET_RES, tp);
+		ret = __evl_transparent_call(clockfd, ioctl,
+					EVL_CLKIOC_GET_RES, tp);
 	}
 
 	return ret;

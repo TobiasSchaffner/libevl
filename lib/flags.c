@@ -222,7 +222,7 @@ static int do_trywait_flags(struct evl_flags *flg,
 	 * In-band threads may trywait flags directly, no need to
 	 * trigger a stage switch since we won't sleep.
 	 */
-	ret = __evl_conforming_io(flg->u.active.efd, ioctl, cmd, &req);
+	ret = __evl_transparent_call(flg->u.active.efd, ioctl, cmd, &req);
 	if (ret)
 		return ret;
 
@@ -264,7 +264,7 @@ static int do_post_flags(struct evl_flags *flg, int bits, bool bcast)
 	cmd = bcast ? EVL_MONIOC_BROADCAST : EVL_MONIOC_SIGNAL;
 
 	/* See trywait(). */
-	return __evl_conforming_io(flg->u.active.efd, ioctl, cmd, &mask);
+	return __evl_transparent_call(flg->u.active.efd, ioctl, cmd, &mask);
 }
 
 int evl_post_flags(struct evl_flags *flg, int bits)

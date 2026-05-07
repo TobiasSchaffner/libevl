@@ -40,10 +40,10 @@ int evl_set_timer(int efd,
 	sreq.value_ptr = __evl_kitimerspec_ptr64(value);
 	sreq.ovalue_ptr = __evl_kitimerspec_ptr64(ovalue);
 
-	return __evl_conforming_io(efd, ioctl, EVL_TFDIOC_SET, &sreq);
+	return __evl_transparent_call(efd, ioctl, EVL_TFDIOC_SET, &sreq);
 }
 
 int evl_get_timer(int efd, struct itimerspec *value)
 {
-	return __evl_conforming_io(efd, ioctl, EVL_TFDIOC_GET, value);
+	return __evl_transparent_call(efd, ioctl, EVL_TFDIOC_GET, value);
 }

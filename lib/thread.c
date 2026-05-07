@@ -178,17 +178,18 @@ int evl_switch_inband(void)
 
 int evl_get_state(int efd, struct evl_thread_state *statebuf)
 {
-	return __evl_conforming_io(efd, ioctl, EVL_THRIOC_GET_STATE, statebuf);
+	return __evl_transparent_call(efd, ioctl,
+				EVL_THRIOC_GET_STATE, statebuf);
 }
 
 int evl_unblock_thread(int efd)
 {
-	return __evl_conforming_io(efd, ioctl, EVL_THRIOC_UNBLOCK);
+	return __evl_transparent_call(efd, ioctl, EVL_THRIOC_UNBLOCK);
 }
 
 int evl_demote_thread(int efd)
 {
-	return __evl_conforming_io(efd, ioctl, EVL_THRIOC_DEMOTE);
+	return __evl_transparent_call(efd, ioctl, EVL_THRIOC_DEMOTE);
 }
 
 static int do_thread_mode(int efd, int op, int mask, int *oldmask)
@@ -196,7 +197,7 @@ static int do_thread_mode(int efd, int op, int mask, int *oldmask)
 	__u32 val = mask;
 	int ret;
 
-	ret = __evl_conforming_io(efd, ioctl, op, &val);
+	ret = __evl_transparent_call(efd, ioctl, op, &val);
 	if (ret)
 		return ret;
 

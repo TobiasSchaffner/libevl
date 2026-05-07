@@ -63,7 +63,7 @@ ssize_t evl_write_proxy(int proxyfd, const void *buf, size_t count)
 {
 	ssize_t ret;
 
-	ret = __evl_conforming_io(proxyfd, write, buf, count);
+	ret = __evl_transparent_call(proxyfd, write, buf, count);
 
 	return ret < 0 ? -errno : ret;
 }
@@ -72,7 +72,7 @@ ssize_t evl_read_proxy(int proxyfd, void *buf, size_t count)
 {
 	ssize_t ret;
 
-	ret = __evl_conforming_io(proxyfd, read, buf, count);
+	ret = __evl_transparent_call(proxyfd, read, buf, count);
 
 	return ret < 0 ? -errno : ret;
 }
