@@ -145,11 +145,11 @@ static int do_timedwait_flags(struct evl_flags *flg,
 	req.timeout_ptr = __evl_ktimespec_ptr64(timeout);
 	req.value = bits;
 
-	ret = oob_ioctl(flg->u.active.efd,
+	ret = __evl_conforming_call(flg->u.active.efd, ioctl,
 			exact_match ? EVL_MONIOC_WAIT_EXACT :
 			EVL_MONIOC_WAIT, &req);
 	if (ret)
-		return -errno;
+		return ret;
 
 	if (r_bits)
 		*r_bits = req.value;
