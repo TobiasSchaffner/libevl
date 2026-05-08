@@ -95,26 +95,22 @@ static const struct option options[] = {
 	{
 		.name = "irq",
 		.has_arg = no_argument,
-		.flag = &test_irqlat,
-		.val = 1,
+		.val = 'i',
 	},
 	{
 		.name = "kernel",
 		.has_arg = no_argument,
-		.flag = &test_klat,
-		.val = 1,
+		.val = 'k',
 	},
 	{
 		.name = "user",
 		.has_arg = no_argument,
-		.flag = &test_ulat,
-		.val = 1,
+		.val = 'u',
 	},
 	{
 		.name = "sirq",
 		.has_arg = no_argument,
-		.flag = &test_sirqlat,
-		.val = 1,
+		.val = 's',
 	},
 	{
 		.name = "oob-gpio",
@@ -598,6 +594,18 @@ int main(int argc, char *const argv[])
 
 		switch (c) {
 		case 0:
+			break;
+		case 'i':
+			test_irqlat = 1;
+			break;
+		case 'k':
+			test_klat = 1;
+			break;
+		case 'u':
+			test_ulat = 1;
+			break;
+		case 's':
+			test_sirqlat = 1;
 			break;
 		case 'r':
 			reset = true;
