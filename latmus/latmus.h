@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <time.h>
 
 struct in_addr;
 
@@ -40,6 +41,8 @@ int find_host_ip(const char *host,
 
 int find_netif_ip(const char *netif,
 		struct in_addr *addr);
+
+const char *get_refclock_name(void);
 
 void create_responder(pthread_t *tid,
 		int priority, void *(*responder)(void *));
@@ -87,6 +90,8 @@ extern unsigned int period_usecs;
 extern const char *peer_host;
 
 extern const char *local_netif;
+
+extern clockid_t reference_clock;
 
 extern int latmus_fd;
 

@@ -37,6 +37,7 @@ void do_tuning(int type)
 	setup.period = period_usecs * 1000ULL; /* ns */
 	setup.priority = responder_priority;
 	setup.cpu = responder_cpu;
+	setup.clockid = reference_clock;
 	setup.u.tune.verbosity = verbosity;
 	ret = ioctl(latmus_fd, EVL_LATIOC_TUNE, &setup);
 	if (ret)

@@ -51,7 +51,7 @@ void *timer_responder(void *arg)
 				error(1, errno, "pulse failed");
 			timestamp = 0; /* Next period. */
 		} else {
-			evl_read_clock(EVL_CLOCK_MONOTONIC, &now);
+			clock_gettime(reference_clock, &now);
 			timestamp = (__u64)now.tv_sec * 1000000000 + now.tv_nsec;
 		}
 	}
@@ -140,6 +140,7 @@ void run_timer_test(size_t histogram_cells)
 	setup.period = period_usecs * 1000ULL; /* ns */
 	setup.priority = responder_priority;
 	setup.cpu = responder_cpu;
+	setup.clockid = reference_clock;
 	setup.u.measure.xfd = lat_xfd;
 	setup.u.measure.hcells = statistics.h_cells;
 	ret = ioctl(latmus_fd, EVL_LATIOC_MEASURE, &setup);
@@ -219,6 +220,7 @@ void wrap_timer_data_page(struct statistics *st, unsigned int round)
 	printf("RTT|  %.2ld:%.2ld:%.2ld  (%s, %u us period,",
 		(long)(dt / 3600), (long)((dt / 60) % 60), (long)(dt % 60),
 		context_labels[context_type], period_usecs);
+	printf(" %s,", get_refclock_name());
 	if (responder_priority != -1)
 		printf(" priority %d,", responder_priority);
 	printf(" CPU%d%s)\n",

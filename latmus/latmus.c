@@ -51,6 +51,8 @@ bool abort_on_switch = true,
 
 int context_type = EVL_LAT_USER;
 
+clockid_t reference_clock = CLOCK_MONOTONIC;
+
 unsigned int spurious_inband_switches = 0;
 
 time_t start_time = 0;
@@ -89,7 +91,7 @@ static bool reset, background;
 
 static bool force_cpu;
 
-#define short_optlist "ikusrqbKmtp:A:T:v::l:g::H:P:c:Z:z:I:O:C:E:S:nL:"
+#define short_optlist "ikusrqbKmtnp:A:T:v::l:g::H:P:c:Z:z:I:O:C:E:S:L:M::"
 
 static const struct option options[] = {
 	{
@@ -232,6 +234,18 @@ static const struct option options[] = {
 		.has_arg = required_argument,
 		.val = 'C',
 	},
+	{
+		.name = "clock-monotonic",
+		.has_arg = optional_argument,
+		.flag = &reference_clock,
+		.val = CLOCK_MONOTONIC,
+	},
+	{
+		.name = "clock-raw",
+		.has_arg = optional_argument,
+		.flag = &reference_clock,
+		.val = CLOCK_MONOTONIC_RAW,
+	},
 	{ /* Sentinel */ }
 };
 
@@ -280,6 +294,14 @@ static void restrict_c_state(void)
 
 	if (write(fd, &val, sizeof(val) == sizeof(val)))
 		c_state_restricted = true;
+}
+
+const char *get_refclock_name(void)
+{
+	if (reference_clock == CLOCK_MONOTONIC_RAW)
+		return "raw monotonic";
+
+	return "monotonic";
 }
 
 void notify_start(int delay)
@@ -566,6 +588,8 @@ static void usage(void)
         fprintf(stderr, "   -L --local-if=<netif>   use specified local network interface\n");
         fprintf(stderr, "   -n --no-check           disable packet sequence check\n");
         fprintf(stderr, "   -S --packet-size=<n>    set the UDP packet size (> 20 bytes)\n");
+        fprintf(stderr, "-M[m] --clock-monotonic    use CLOCK_MONOTONIC for tuning and measurements\n");
+        fprintf(stderr, "-Mr   --clock-raw          use CLOCK_MONOTONIC_RAW for tuning and measurements\n");
 }
 
 static void bad_usage(int argc, char *const argv[])
@@ -712,6 +736,22 @@ int main(int argc, char *const argv[])
 		case 'L':
 			local_netif = optarg;
 			break;
+		case 'M':
+			if (optarg) {
+				switch (*optarg) {
+				case 'm':
+					reference_clock = CLOCK_MONOTONIC;
+					break;
+				case 'r':
+					reference_clock = CLOCK_MONOTONIC_RAW;
+					break;
+				default:
+					error(1, EINVAL, "invalid clock modifier (expect [m]onotonic or [r]aw");
+				}
+			} else {
+				reference_clock = CLOCK_MONOTONIC;
+			}
+			break;
 		case '?':
 		default:
 			bad_usage(argc, argv);
@@ -803,7 +843,7 @@ int main(int argc, char *const argv[])
 			error(1, errno, "cannot open latmus device");
 
 		if (reset) {
-			ret = ioctl(latmus_fd, EVL_LATIOC_RESET);
+			ret = ioctl(latmus_fd, EVL_LATIOC_RESET, (long)reference_clock);
 			if (ret)
 				error(1, errno, "reset failed");
 		}
@@ -824,9 +864,9 @@ int main(int argc, char *const argv[])
 		do_measurement(histogram_cells, no_check);
 	} else {
 		if (verbosity)
-			printf("== latmus is now tuning the core timer, "
+			printf("== latmus is now tuning the core timer (%s), "
 			       "period=%d microseconds (may take a while)\n",
-			       period_usecs);
+				get_refclock_name(), period_usecs);
 
 		ret = evl_attach_self("/clock-tuner:%d", getpid());
 		if (ret < 0)

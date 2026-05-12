@@ -149,6 +149,7 @@ static void dump_gnuplot(struct statistics *st_array, int nr,
 	paste_file_in("/proc/cmdline", NULL);
 	fprintf(plot_fp, "# libevl version: %s\n", evl_get_version().version_string);
 	fprintf(plot_fp, "# sampling period: %u microseconds\n", period_usecs);
+	fprintf(plot_fp, "# clock: %s\n", get_refclock_name());
 	paste_file_in("/sys/devices/virtual/clock/monotonic/gravity",
 		"clock gravity: ");
 	paste_file_in("/sys/devices/system/clocksource/clocksource0/current_clocksource",
