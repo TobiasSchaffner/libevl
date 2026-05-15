@@ -128,9 +128,9 @@ int main(int argc, char *argv[])
 {
 	union evl_sched_ctlparam *p;
 	union evl_sched_ctlinfo *q;
+	const char *s;
 	int ret, n, c;
 	size_t len;
-	char *s;
 
 	for (;;) {
 		c = getopt_long(argc, argv, short_optlist, options, NULL);
