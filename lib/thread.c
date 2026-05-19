@@ -186,6 +186,16 @@ int evl_demote_thread(int efd)
 	return __evl_transparent_call(efd, ioctl, EVL_THRIOC_DEMOTE);
 }
 
+int evl_suspend_thread(int efd)
+{
+	return __evl_transparent_call(efd, ioctl, EVL_THRIOC_SUSPEND);
+}
+
+int evl_resume_thread(int efd)
+{
+	return __evl_transparent_call(efd, ioctl, EVL_THRIOC_RESUME);
+}
+
 static int do_thread_mode(int efd, int op, int mask, int *oldmask)
 {
 	__u32 val = mask;

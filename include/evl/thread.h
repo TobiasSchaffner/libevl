@@ -54,6 +54,10 @@ int evl_unblock_thread(int efd);
 
 int evl_demote_thread(int efd);
 
+int evl_suspend_thread(int efd);
+
+int evl_resume_thread(int efd);
+
 int evl_set_thread_mode(int efd, int mask,
 			int *oldmask);
 

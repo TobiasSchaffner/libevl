@@ -81,6 +81,7 @@ test_programs = [
     'stax-warn',
     'thread-demote',
     'thread-mode-bits',
+    'thread-suspend',
 ]
 
 foreach t : test_programs
