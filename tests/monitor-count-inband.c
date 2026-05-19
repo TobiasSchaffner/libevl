@@ -55,7 +55,7 @@ static void *oob_receiver(void *arg)
 		 * even ones. The result should be the same: unicast
 		 * signal.
 		 */
-		if (n % 1) {
+		if (n & 1) {
 			__Tcall_assert(ret, evl_get_sem(&i_sem));
 			__Tcall_assert(ret, evl_put_sem(&o_sem));
 		} else {
