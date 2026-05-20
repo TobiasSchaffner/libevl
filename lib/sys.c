@@ -248,8 +248,3 @@ fail:
 
 	return ret;
 }
-
-int evl_get_current_mode(void)
-{
-	return evli_current_mode();
-}
