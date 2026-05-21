@@ -70,18 +70,12 @@ static ssize_t do_read(int ofd, struct evl_notification *nf, int nr,
 	ssize_t ret, _ret __maybe_unused;
 
 	/*
-	 * This mess is exclusively intended not to expose the
-	 * __evl_timespec type embedded into the __evl_notification
-	 * descriptor to users.  Legacy 32bit systems with
-	 * Y0238-unsafe C libraries have to pay a price for this, by
-	 * reading every notification one after another instead of
-	 * pulling a bulk - this stupidly trivial way seems acceptable
-	 * for those platforms.  For all others, struct __evl_timespec
-	 * used in kernel space and timespec in userland have the same
-	 * memory layout, so we may read the notifications in one gulp
-	 * directly into the user buffer.
+	 * We can map the struct __evl_notification kernel type to
+	 * struct evl_notification directly on 64bit platforms,
+	 * because sizeof .tv_nsec is same size. We need to do some
+	 * manual conversion on 32bit platforms though.
 	 */
-#if __WORDSIZE == 64 || __TIMESIZE == 64
+#if __WORDSIZE == 64
 	ret = readfn(ofd, nf, nr * sizeof(*nf));
 #else
 	ret = 0;
