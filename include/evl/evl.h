@@ -20,21 +20,6 @@
 #include <evl/proxy.h>
 #include <evl/rwlock.h>
 #include <evl/sys.h>
-#include <evl/control-abi.h>
-
-#define __EVL__  35	/* API version */
-
-/* The earliest ABI revision we can work with. */
-#define EVL_ABI_PREREQ  44
-
-#if EVL_ABI_LEVEL < EVL_ABI_PREREQ
-#error EVL kernel uapi is too old
-#endif
-
-struct evl_version {
-	int api_level;	/* libevl.so: __EVL__ */
-	int abi_level;	/* EVL_ABI_PREREQ */
-	const char *version_string;
-};
+#include <evl/version.h>
 
 #endif /* _EVL_EVL_H */

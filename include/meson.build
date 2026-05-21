@@ -39,6 +39,7 @@ libevl_headers = [
     'evl/sys.h',
     'evl/thread.h',
     'evl/timer.h',
+    'evl/version.h',
     'evl/xbuf.h',
 ]
 

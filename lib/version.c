@@ -4,8 +4,7 @@
  * Copyright (C) 2018 Philippe Gerum  <rpm@xenomai.org>
  */
 
-#include <evl/evl.h>
-#include <evl/control-abi.h>
+#include <evl/version.h>
 #include "git_stamp.h"
 
 #ifndef GIT_STAMP
