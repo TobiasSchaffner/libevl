@@ -5,7 +5,6 @@ libevl_sources = [
     'event.c',
     'flags.c',
     'heap.c',
-    'init.c',
     'mutex.c',
     'net.c',
     'observable.c',
