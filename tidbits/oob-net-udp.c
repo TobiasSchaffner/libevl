@@ -8,7 +8,7 @@
  * The server mode [-S] receives a packet from on a given
  * port and sends a response to the sender's ip/port.
  *
- * The client mode [-S] sends a packet to a port/ip
+ * The client mode [-C] sends a packet to a port/ip
  * and receives the response from a server. The round
  * trip time is measured.
  *
@@ -443,6 +443,8 @@ int main(int argc, char *argv[])
 		 */
 		ret = evl_net_solicit(s, (const struct sockaddr *)&addr,
 				EVL_NEIGH_PERMANENT);
+		if (ret)
+			error(1, -ret, "evl_net_solicit()");
 
 		client(s, text, mcount, &addr, iter, delay);
 	} else if (mode == SERVER) {
