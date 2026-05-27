@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 project('libevl', [ 'c', 'cpp' ],
-  version : '0.58',
+  version : '0.59',
   license : 'MIT',
   meson_version : '>= 0.58.0',
   default_options : [ 'warning_level=3',
@@ -79,7 +79,7 @@ post_install = find_program('post-install.sh',
 #
 # <age> must be less than or equal to <current>
 
-libevl_dso_version = '7.0.0'
+libevl_dso_version = '8.0.0'
 
 libexec_evl = get_option('libexecdir') / 'evl'
 
