@@ -16,7 +16,7 @@
 #error EVL kernel uapi is too old
 #endif
 
-#define __EVL__  35	/* API version */
+#define __EVL__  36	/* API version */
 
 struct evl_version {
 	int api_level;	/* libevl.so: __EVL__ */
