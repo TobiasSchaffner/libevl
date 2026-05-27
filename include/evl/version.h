@@ -10,7 +10,7 @@
 #include <evl/control-abi.h>
 
 /* The earliest ABI revision we can work with. */
-#define EVL_ABI_PREREQ  44
+#define EVL_ABI_PREREQ  45
 
 #if EVL_ABI_LEVEL < EVL_ABI_PREREQ
 #error EVL kernel uapi is too old
