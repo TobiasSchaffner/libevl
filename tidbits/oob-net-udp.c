@@ -50,12 +50,12 @@ static void usage(void)
 }
 
 static void print_addr(char* text, struct sockaddr_in *addr){
-    char ip_str[INET_ADDRSTRLEN+1];
-    inet_ntop(AF_INET, &(addr->sin_addr), ip_str, sizeof(ip_str));
-    evl_printf("%s--------\n", text);
-    evl_printf("IP-Address: %s\n", ip_str);
-    evl_printf("Port:       %d\n", ntohs(addr->sin_port));
-    evl_printf("Family:     %d\n", addr->sin_family);
+	char ip_str[INET_ADDRSTRLEN+1];
+	inet_ntop(AF_INET, &(addr->sin_addr), ip_str, sizeof(ip_str));
+	evl_printf("== %s\n", text);
+	evl_printf("   ip-address: %s\n", ip_str);
+	evl_printf("   port:       %d\n", ntohs(addr->sin_port));
+	evl_printf("   family:     %d\n", addr->sin_family);
 }
 
 static void sender(int s, const char *text, int mcount,
@@ -226,6 +226,8 @@ static void client(int s, const char *text, int mcount,
 	free(tbuf);
 }
 
+#define SERVER_ADDR_LIST_SIZE 64
+
 static void server(int s, const char *text, int mcount,
 		struct sockaddr_in *addr, int iter)
 {
@@ -236,6 +238,9 @@ static void server(int s, const char *text, int mcount,
 	ssize_t ret;
 	char *tbuf;
 	char rbuf[16384];
+	in_addr_t addr_list[SERVER_ADDR_LIST_SIZE] = {};
+	size_t addr_list_fill = 0;
+	bool solicit_done;
 
 	tlen = (strlen(text) + 1) * mcount;
 	tbuf = malloc(tlen);
@@ -275,6 +280,39 @@ static void server(int s, const char *text, int mcount,
 		if (msghdr.msg_flags & MSG_TRUNC)
 			evl_printf(" (TRUNCATED)");
 		evl_printf(": %.*s\n", (int)ret, rbuf);
+
+		/*
+		 * We need to call evl_net_solicit for each new client
+		 * once before sending data. This demotes the caller to the
+		 * in-band stage for the first response.
+		 * If this is not done and the ARP address is not
+		 * yet in cache or garbage-collected, oob_sendmsg
+		 * will return EINPROGRESS on start or during runtime.
+		 */
+		solicit_done = false;
+		for (size_t i = 0; i < addr_list_fill && !solicit_done; i++) {
+			if (addr_list[i] == _addr.sin_addr.s_addr) {
+				solicit_done = true;
+			}
+		}
+		if (!solicit_done) {
+			if (verbosity) {
+				char ip_str[INET_ADDRSTRLEN+1];
+				inet_ntop(AF_INET, &(_addr.sin_addr), ip_str, sizeof(ip_str));
+				evl_printf("== client %s first seen: evl_net_solicit\n", ip_str);
+			}
+			ret = evl_net_solicit(s, (const struct sockaddr *)&_addr,
+					EVL_NEIGH_PERMANENT);
+			if (ret)
+				error(1, -ret, "evl_net_solicit()");
+
+			if (addr_list_fill < SERVER_ADDR_LIST_SIZE) {
+				addr_list[addr_list_fill] = _addr.sin_addr.s_addr;
+				addr_list_fill++;
+			} else {
+				error(1, EPERM, "address list full");
+			}
+		}
 
 		iov.iov_base = tbuf;
 		iov.iov_len = tlen;
@@ -433,7 +471,7 @@ int main(int argc, char *argv[])
 		receiver(s, &addr, iter);
 	} else if (mode == CLIENT) {
 		if (verbosity)
-			printf("== client mode (<= %s:%d)\n", ip, port);
+			printf("== client mode (<=> %s:%d)\n", ip, port);
 
 		/*
 		 * Guarantee a mere oob path from the first packet
@@ -449,8 +487,12 @@ int main(int argc, char *argv[])
 		client(s, text, mcount, &addr, iter, delay);
 	} else if (mode == SERVER) {
 		if (verbosity)
-			printf("== server mode (<= %s:%d)\n", ip, port);
+			printf("== server mode (<=> %s:%d)\n", ip, port);
 
+		/*
+		 * The server calls evl_net_solicit() internally
+		 * for each new ip address.
+		 */
 		server(s, text, mcount, &addr, iter);
 	} else {
 		error(1, 0, "Mode not implemented");
