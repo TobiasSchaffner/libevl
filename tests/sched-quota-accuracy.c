@@ -94,6 +94,13 @@ static const struct option options[] = {
 static unsigned long __attribute__(( noinline ))
 __do_work(unsigned long count)
 {
+	struct timespec now, to;
+	int ret;
+
+	__Tcall_assert(ret, evl_read_clock(EVL_CLOCK_MONOTONIC, &now));
+	timespec_add_ns(&to, &now, 100);
+	while (timespec_sub_ns(&to, &now) > 0)
+		__Tcall_assert(ret, evl_read_clock(EVL_CLOCK_MONOTONIC, &now));
 	return count + 1;
 }
 
