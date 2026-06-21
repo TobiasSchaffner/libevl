@@ -85,7 +85,7 @@ if test \! -d $EVL_TRACEDIR; then
 fi
 
 if test \! -d $EVL_TRACEDIR/events/evl; then
-   echo >&2 "no EVL core in kernel"
+   echo >&2 "no EVL tracepoints ($EVL_TRACEDIR/events/evl is missing)"
    exit 2
 fi
 

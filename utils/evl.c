@@ -130,7 +130,7 @@ int main(int argc, char *const argv[])
 	setenv("EVL_TESTDIR", testdir, 1);
 	setenv("EVL_SYSDIR", "/sys/devices/virtual", 1);
 	/* Prefer tracefs over debugfs (obsolete) mountpoint. */
-	if (!access("/sys/kernel/tracing", F_OK))
+	if (!access("/sys/kernel/tracing/evl", F_OK))
 		setenv("EVL_TRACEDIR", "/sys/kernel/tracing", 1);
 	else
 		setenv("EVL_TRACEDIR", "/sys/kernel/debug/tracing", 1);
