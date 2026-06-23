@@ -66,18 +66,17 @@ static void *test_thread(void *arg)
 	me = 1 << serial;
 
 	oob = !!(serial & 1);
+	delay = running_on_vm() ? 1000000 : 100000;
 	if (oob) {
 		__Tcall_assert(tfd, evl_attach_self("stax.%ld:%d",
 					serial / 2, getpid()));
 		do_ioctl = oob_ioctl;
 		do_usleep = evl_usleep;
-		delay = 100000;
 		/* Any in-band presence is invalid. */
 		invalid = 0x55555555;
 	} else {
 		do_ioctl = ioctl;
 		do_usleep = usleep;
-		delay = 100000;
 		/* Any oob presence is invalid. */
 		invalid = 0xAAAAAAAA;
 	}
