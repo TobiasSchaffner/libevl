@@ -54,6 +54,11 @@ if test x$help = xtrue; then
    exit 0
 fi
 
+unset EVL_ON_VM
+if $(systemd-detect-virt --vm --quiet 2>/dev/null); then
+    export EVL_ON_VM=y
+fi
+
 if test -z "$test_list"; then
    test_list="$(find $EVL_TESTDIR -maxdepth 1 -type f | sort)"
    if test -z "$test_list"; then
