@@ -7,7 +7,7 @@ if test \! -d $EVL_TESTDIR; then
 fi
 
 usage() {
-   echo >&2 "usage: $(basename $1) [-l][-L][-k][-r][-h][--stress-cmd cmd][--stress-out file] [test-list]"
+   echo >&2 "usage: $(basename $1) [-l][-L][-k][-r][-h][--stress-cmd cmd][--stress-out file][--latmus-args args][--latmus-out file] [test-list]"
 }
 
 help=false
@@ -21,6 +21,9 @@ test_list=
 stress_cmd=
 stress_pid=
 stress_out=/dev/null
+do_latmus=false
+latmus_args=
+latmus_out=/dev/null
 
 while test $# -gt 0
 do
@@ -44,13 +47,21 @@ do
 		shift 2;;
 	    --stress-out) stress_out="$2";
 		shift 2;;
+	    --latmus-args) latmus_args="$2";
+		shift 2;;
+	    --latmus-out) latmus_out="$2";
+		shift 2;;
 	    --) test_args=true
 		shift;;
 	    -@) echo "run the EVL tests"
 	        exit 0;;
 	    -*) usage $0
 		exit 1;;
-	    *)  test_list="$test_list $(eval echo $EVL_TESTDIR/$1)"
+	    *)  if test "$1" = latmus; then
+		    do_latmus=true
+		else
+		    test_list="$test_list $(eval echo $EVL_TESTDIR/$1)"
+		fi
 		shift;;
 	esac
     fi
@@ -77,6 +88,23 @@ start_stress() {
     fi
 }
 
+run_latmus() {
+    # Default to a 10s run unless the caller passed a runtime explicitly.
+    case " $latmus_args " in
+        *" -T"*|*" --timeout"*) ;;
+        *) latmus_args="-T 10 $latmus_args" ;;
+    esac
+    # latmus stdout is dropped by default, redirect it with --latmus-out.
+    latmus -q $latmus_args >"$latmus_out"
+    status=$?
+    if test $status = 0; then
+        echo "latmus: OK"
+    else
+        echo "** latmus: BROKEN"
+        result=$status
+    fi
+}
+
 if test x$help = xtrue; then
    usage $0
    exit 0
@@ -87,7 +115,8 @@ if $(systemd-detect-virt --vm --quiet 2>/dev/null); then
     export EVL_ON_VM=y
 fi
 
-if test -z "$test_list"; then
+if test -z "$test_list" && test x$do_latmus = xfalse; then
+   do_latmus=true
    test_list="$(find $EVL_TESTDIR -maxdepth 1 -type f | sort)"
    if test -z "$test_list"; then
       echo >&2 "$EVL_TESTDIR is empty - broken installation?"
@@ -133,5 +162,7 @@ while : ; do
       done
       test x$repeat = xfalse && break
 done
+
+if test x$do_latmus = xtrue; then run_latmus; fi
 
 exit $result
