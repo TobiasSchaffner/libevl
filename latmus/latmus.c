@@ -369,9 +369,9 @@ static void do_measurement(size_t histogram_cells, bool no_check)
 		cpu_s = " (not isolated)";
 
 	if (verbosity > 0)
-		fprintf(stderr, "warming up on CPU%d%s...\n", responder_cpu, cpu_s);
+		fprintf(stdout, "warming up on CPU%d%s...\n", responder_cpu, cpu_s);
 	else
-		fprintf(stderr, "running quietly for %ld seconds on CPU%d%s\n",
+		fprintf(stdout, "running quietly for %ld seconds on CPU%d%s\n",
 			(long)timeout, responder_cpu, cpu_s);
 
 	switch (context_type) {
