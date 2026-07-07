@@ -83,22 +83,23 @@ result=0
 while : ; do
       for t in $test_list; do
 	  test \! -x $t && echo "$(basename $0): $(basename $t): no such test" && exit 2
+	  echo -n "$(basename $t):"
 	  # Swap stdout<->stderr for the test, capturing stderr into $log.
 	  log=$($t $test_arg_list 3>&1 1>&2 2>&3)
 	  status=$?
 	  if test $status = 43; then
-	      echo "$(basename $t): $log"
+	      echo " $log"
 	  else
-	      test -n "$log" && echo "$log"
 	      if test $status = 0; then
-		  echo "$(basename $t): OK"
+		  echo " OK"
 	      elif test $status = 42; then
-		  echo "$(basename $t): no kernel support"
+		  echo " no kernel support"
 	      else
-		  echo "** $(basename $t): BROKEN"
+		  echo " ** BROKEN"
 		  result=$status
-		  test x$keep_going = xfalse && break
 	      fi
+	      test -n "$log" && echo "$log"
+	      test $result -ne 0 && test x$keep_going = xfalse && break
 	  fi
       done
       test x$repeat = xfalse && break
