@@ -128,16 +128,9 @@ static void *tp_thread(void *arg)
 	 */
 	__Texpr_assert(nf.event.val == part * 2);
 
-	/*
-	 * Perform the following check on real hardware only, it is
-	 * likely to be wrong in a virtualized environment for timing
-	 * accuracy reason.
-	 */
-	if (!running_on_vm()) {
-		/* Check that a single notification was sent. */
-		__Fcall_assert(ret, evl_read_observable(tfd, &nf, 1));
-		__Texpr_assert(ret == -EAGAIN);
-	}
+	/* Check that a single notification was sent. */
+	__Fcall_assert(ret, evl_read_observable(tfd, &nf, 1));
+	__Texpr_assert(ret == -EAGAIN);
 
 	return NULL;
 }
@@ -176,6 +169,13 @@ int main(int argc, char *argv[])
 		usage();
 		return 1;
 	}
+
+	/*
+	 * Skip on virtualized environments since the test relies on
+	 * timing guarantees that are not reliable under virtualization.
+	 */
+	if (running_on_vm())
+		return EXIT_SKIPPED_ON_VM;
 
 	param.sched_priority = HIGH_PRIO;
 	__Texpr_assert(pthread_setschedparam(pthread_self(),
