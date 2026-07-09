@@ -1,0 +1,16 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+#
+# Wrapper for latmus test integration with evl-test.
+# Allows invoking latmus through the test suite with:
+#   evl test latmus -- -A 150
+#   evl test latmus -- -T 60
+#   evl test latmus
+#
+# Defaults to a 10-second dropping stdout if run if no arguments are provided.
+
+if [ $# -eq 0 ]; then
+    exec latmus -T 10 >/dev/null
+else
+    exec latmus "$@"
+fi

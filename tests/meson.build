@@ -119,4 +119,15 @@ foreach t : test_programs_with_atomic
 )
 endforeach
 
+test_scripts = [
+    'latmus',
+]
+
+foreach t : test_scripts
+    install_data(t,
+        install_dir : libexec_evl + '/tests',
+        install_mode : 'rwxr-xr-x'
+    )
+endforeach
+
 subdir('compile-tests')
