@@ -14,8 +14,9 @@
 #include <linux/ioctl.h>
 #include <evl/proxy.h>
 
-#define EXIT_NO_SUPPORT  42
-#define EXIT_NO_STATUS   43
+#define EXIT_NO_SUPPORT  	42
+#define EXIT_NO_STATUS   	43
+#define EXIT_SKIPPED_ON_VM  	44
 
 #define ONE_BILLION	1000000000
 

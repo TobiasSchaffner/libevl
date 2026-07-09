@@ -94,6 +94,8 @@ while : ; do
 		  echo " OK"
 	      elif test $status = 42; then
 		  echo " no kernel support"
+	      elif test $status = 44; then
+		  echo " skipped on vm"
 	      else
 		  echo " ** BROKEN"
 		  result=$status
