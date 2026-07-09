@@ -7,7 +7,32 @@ if test \! -d $EVL_TESTDIR; then
 fi
 
 usage() {
-   echo >&2 "usage: $(basename $1) [-l][-L][-k][-r][-h][--stress-cmd cmd][--stress-out file] [test-list]"
+   cat >&2 <<EOF
+usage: $(basename $1) [options] [test-list]
+
+Run EVL test suite or specific tests from the test directory.
+
+Options:
+  -l                    list available tests
+  -L                    list available tests with full paths
+  -k                    keep going after test failures
+  -r                    repeat tests continuously until interrupted
+  --stress-cmd <cmd>    run stress command during the test session (quote if multiple arguments)
+  --stress-out <file>   redirect stress command output (default: /dev/null)
+  -h                    display this help message
+  --                    pass remaining arguments to test programs
+
+Arguments:
+  test-list             one or more test names to run (default: all tests)
+
+Environment Variables:
+  EVL_TESTDIR           directory containing test binaries
+
+Examples:
+  $(basename $1)                                   # run all tests
+  $(basename $1) --stress-cmd "stress-ng --cpu 4"  # run tests under stress-ng CPU stress
+  $(basename $1) -- --verbose                      # pass --verbose to all tests
+EOF
 }
 
 help=false
