@@ -270,6 +270,7 @@ static void *sleeper_switcher(void *cookie)
 	CPU_SET(param->cpu->index, &cpu_set);
 	if (sched_setaffinity(0, sizeof(cpu_set), &cpu_set)) {
 		perror("sleeper: sched_setaffinity");
+		sem_post(&task_init);
 		clean_exit(EXIT_FAILURE);
 	}
 
@@ -379,6 +380,7 @@ static void *fpu_stress(void *cookie)
 	CPU_SET(param->cpu->index, &cpu_set);
 	if (sched_setaffinity(0, sizeof(cpu_set), &cpu_set)) {
 		perror("sleeper: sched_setaffinity");
+		sem_post(&task_init);
 		clean_exit(EXIT_FAILURE);
 	}
 
@@ -399,19 +401,14 @@ static void *fpu_stress(void *cookie)
 	return NULL;
 }
 
-static void attach_thread(struct task_params *param)
+static int attach_thread(struct task_params *param)
 {
 	char buffer[64];
-	int efd;
 
 	task_name(buffer, sizeof(buffer), param->cpu,param->swt.index);
 
 	/* Make it a public thread only for demo purpose. */
-	efd = evl_attach_self("/%s:%d", buffer, getpid());
-	if (efd < 0) {
-		perror("evl_attach()");
-		clean_exit(EXIT_FAILURE);
-	}
+	return evl_attach_self("/%s:%d", buffer, getpid());
 }
 
 static void *rtup(void *cookie)
@@ -423,12 +420,17 @@ static void *rtup(void *cookie)
 	cpu_set_t cpu_set;
 	unsigned i = 0;
 
-	attach_thread(param);
+	if (attach_thread(param) < 0) {
+		perror("evl_attach()");
+		sem_post(&task_init);
+		clean_exit(EXIT_FAILURE);
+	}
 
 	CPU_ZERO(&cpu_set);
 	CPU_SET(param->cpu->index, &cpu_set);
 	if (sched_setaffinity(0, sizeof(cpu_set), &cpu_set)) {
 		perror("rtup: sched_setaffinity");
+		sem_post(&task_init);
 		clean_exit(EXIT_FAILURE);
 	}
 
@@ -503,12 +505,17 @@ static void *rtus(void *cookie)
 	cpu_set_t cpu_set;
 	unsigned i = 0;
 
-	attach_thread(param);
+	if (attach_thread(param) < 0) {
+		perror("evl_attach()");
+		sem_post(&task_init);
+		clean_exit(EXIT_FAILURE);
+	}
 
 	CPU_ZERO(&cpu_set);
 	CPU_SET(param->cpu->index, &cpu_set);
 	if (sched_setaffinity(0, sizeof(cpu_set), &cpu_set)) {
 		perror("rtus: sched_setaffinity");
+		sem_post(&task_init);
 		clean_exit(EXIT_FAILURE);
 	}
 
@@ -600,12 +607,17 @@ static void *rtuo(void *cookie)
 	cpu_set_t cpu_set;
 	unsigned i = 0;
 
-	attach_thread(param);
+	if (attach_thread(param) < 0) {
+		perror("evl_attach()");
+		sem_post(&task_init);
+		clean_exit(EXIT_FAILURE);
+	}
 
 	CPU_ZERO(&cpu_set);
 	CPU_SET(param->cpu->index, &cpu_set);
 	if (sched_setaffinity(0, sizeof(cpu_set), &cpu_set)) {
 		perror("rtuo: sched_setaffinity");
+		sem_post(&task_init);
 		clean_exit(EXIT_FAILURE);
 	}
 
