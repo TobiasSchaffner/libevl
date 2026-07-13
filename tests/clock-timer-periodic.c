@@ -22,6 +22,15 @@ int main(int argc, char *argv[])
 	int tmfd, ret, n;
 	__u64 ticks;
 
+	/*
+	 * Skip on virtualized environments since the test relies on
+	 * timing guarantees that are not reliable under virtualization.
+	 */
+	if (running_on_vm()) {
+		emit_info("unchecked (vm)");
+		return EXIT_NO_STATUS;
+	}
+
 	param.sched_priority = 1;
 	__Texpr_assert(pthread_setschedparam(pthread_self(),
 				SCHED_FIFO, &param) == 0);
@@ -35,7 +44,7 @@ int main(int argc, char *argv[])
 	__Tcall_assert(ret, evl_read_clock(EVL_CLOCK_MONOTONIC, &now));
 	timespec_add_ns(&value.it_value, &now, 1000000000ULL);
 	value.it_interval.tv_sec = 0;
-	value.it_interval.tv_nsec = 10000000;
+	value.it_interval.tv_nsec = 5000000;
 	__Tcall_assert(ret, evl_set_timer(tmfd, &value, &ovalue));
 
 	for (n = 0; n < 200; n++) {
