@@ -571,7 +571,7 @@ static void usage(void)
         fprintf(stderr, "-r --reset                 reset core timer gravity to factory default\n");
         fprintf(stderr, "-b --background            run in the background (daemon mode)\n");
         fprintf(stderr, "-K --keep-going            keep going on unexpected switch to in-band mode\n");
-        fprintf(stderr, "-A --max-abort=<us>        abort if maximum latency exceeds threshold\n");
+        fprintf(stderr, "-A --max-abort=<us>        abort if maximum latency exceeds threshold, 0 = disabled [=0]\n");
         fprintf(stderr, "-T --timeout=<t>[dhms]     stop measurement after <t> [d(ays)|h(ours)|m(inutes)|s(econds)]\n");
         fprintf(stderr, "-v --verbose[=level]       set verbosity level [=1]\n");
         fprintf(stderr, "-q --quiet                 quiet mode (i.e. --verbose=0)\n");
@@ -669,7 +669,7 @@ int main(int argc, char *const argv[])
 			break;
 		case 'A':
 			abort_threshold = atoi(optarg) * 1000; /* ns */
-			if (abort_threshold <= 0)
+			if (abort_threshold < 0)
 				error(1, EINVAL, "invalid timeout");
 			break;
 		case 'T':
